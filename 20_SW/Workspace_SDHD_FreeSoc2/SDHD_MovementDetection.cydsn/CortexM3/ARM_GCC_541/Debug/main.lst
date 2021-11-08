@@ -1,0 +1,1331 @@
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"main.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.isr_Button_handler,"ax",%progbits
+  20              		.align	2
+  21              		.global	isr_Button_handler
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	isr_Button_handler, %function
+  25              	isr_Button_handler:
+  26              	.LFB65:
+  27              		.file 1 "source\\asw\\main.c"
+   1:source\asw/main.c **** /* ========================================
+   2:source\asw/main.c ****  *
+   3:source\asw/main.c ****  * Copyright YOUR COMPANY, THE YEAR
+   4:source\asw/main.c ****  * All Rights Reserved
+   5:source\asw/main.c ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:source\asw/main.c ****  *
+   7:source\asw/main.c ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:source\asw/main.c ****  * WHICH IS THE PROPERTY OF your company.
+   9:source\asw/main.c ****  *
+  10:source\asw/main.c ****  * ========================================
+  11:source\asw/main.c **** */
+  12:source\asw/main.c **** #include "project.h"
+  13:source\asw/main.c **** #include "global.h"
+  14:source\asw/main.c **** #include "led.h"
+  15:source\asw/main.c **** #include "dma.h"
+  16:source\asw/main.c **** #include "movementDetector.h"
+  17:source\asw/main.c **** 
+  18:source\asw/main.c **** /* Number of bytes to be buffered  */
+  19:source\asw/main.c **** #define ADC_SAMPLE_BUFF_SIZE 1024
+  20:source\asw/main.c **** 
+  21:source\asw/main.c **** /* Destination where ADC samples are stored */
+  22:source\asw/main.c **** uint16 AdcSamplesFromDMA[ADC_SAMPLE_BUFF_SIZE];
+  23:source\asw/main.c **** 
+  24:source\asw/main.c **** /****** function prototypes ***********/
+  25:source\asw/main.c **** /**
+  26:source\asw/main.c ****  * Initialization of peripherals - DAC, UART,ADC
+  27:source\asw/main.c ****  * Starts ADC sampling in continous mode
+  28:source\asw/main.c ****  * @return void
+  29:source\asw/main.c ****  */
+  30:source\asw/main.c **** void peripheral_init();
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 2
+
+
+  31:source\asw/main.c **** 
+  32:source\asw/main.c **** /**
+  33:source\asw/main.c ****  * Interrupt Service Routine (ISR) for Button
+  34:source\asw/main.c ****  * @return void
+  35:source\asw/main.c ****  */
+  36:source\asw/main.c **** void isr_Button_handler();
+  37:source\asw/main.c **** 
+  38:source\asw/main.c **** /**
+  39:source\asw/main.c ****  * Interrupt Service Routine (ISR) for UART
+  40:source\asw/main.c ****  * @return void
+  41:source\asw/main.c ****  */
+  42:source\asw/main.c **** void isr_Uart_handler_onRX();
+  43:source\asw/main.c **** 
+  44:source\asw/main.c **** /**
+  45:source\asw/main.c ****  * Interrupt Service Routine (ISR) for DMA
+  46:source\asw/main.c ****  * @return void
+  47:source\asw/main.c ****  */
+  48:source\asw/main.c **** void isr_DMA_handler_onEOC();
+  49:source\asw/main.c **** 
+  50:source\asw/main.c **** int main(void)
+  51:source\asw/main.c **** {
+  52:source\asw/main.c ****     /* Enable global interrupts. */
+  53:source\asw/main.c ****     CyGlobalIntEnable; 
+  54:source\asw/main.c **** 
+  55:source\asw/main.c ****     /* Activates and Enables button Interrupt */
+  56:source\asw/main.c ****     IRQ_BUTTON_StartEx(isr_Button_handler);
+  57:source\asw/main.c ****     
+  58:source\asw/main.c ****     /* Activates and Enables UART Interrupt */
+  59:source\asw/main.c ****     IRQ_UART_StartEx(isr_Uart_handler_onRX);
+  60:source\asw/main.c ****     
+  61:source\asw/main.c ****     /* Activates and Enables DMA Interrupt */
+  62:source\asw/main.c ****     IRQ_DMA_StartEx(isr_DMA_handler_onEOC);
+  63:source\asw/main.c ****     
+  64:source\asw/main.c ****     /* Initialization of peripherals - DAC,UART,ADC, DMA */
+  65:source\asw/main.c ****     /* Starts ADC sampling in continous mode, and */ 
+  66:source\asw/main.c ****     /* Initialises DMA to read Sampled ADC value into SRAM*/
+  67:source\asw/main.c ****     peripheral_init();
+  68:source\asw/main.c ****     
+  69:source\asw/main.c ****     /** Indicator LED the Initial State of the movement detector  */
+  70:source\asw/main.c ****     /* Red - On , Green - Off , Yellow - Off */        
+  71:source\asw/main.c ****     ledIndictor_systemIsIdle();
+  72:source\asw/main.c **** 
+  73:source\asw/main.c ****     for(;;)
+  74:source\asw/main.c ****     {
+  75:source\asw/main.c ****         /* State machine for movement detection */
+  76:source\asw/main.c ****         movementDetector_StateMachine(AdcSamplesFromDMA,(ADC_SAMPLE_BUFF_SIZE *sizeof(uint16)));
+  77:source\asw/main.c ****     }
+  78:source\asw/main.c **** }
+  79:source\asw/main.c **** 
+  80:source\asw/main.c **** /**
+  81:source\asw/main.c ****  * Initialization of peripherals - DAC, UART,ADC
+  82:source\asw/main.c ****  * Starts ADC sampling in continous mode
+  83:source\asw/main.c ****  * @return void
+  84:source\asw/main.c ****  */
+  85:source\asw/main.c **** void peripheral_init()
+  86:source\asw/main.c **** {
+  87:source\asw/main.c ****     /* Initializes the waveform DAC */
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 3
+
+
+  88:source\asw/main.c ****     WaveDAC_Start();
+  89:source\asw/main.c ****     
+  90:source\asw/main.c ****     /* Initializes the UART */
+  91:source\asw/main.c ****     UART_Start();
+  92:source\asw/main.c ****     
+  93:source\asw/main.c ****     /*Initializes ADC in continous mode */
+  94:source\asw/main.c ****     ADC_DelSig_Start();
+  95:source\asw/main.c ****     
+  96:source\asw/main.c ****     /*DMA initialization to read the ADC sampled values and store it in SRAM */
+  97:source\asw/main.c ****     DMA_Initialize(AdcSamplesFromDMA,(ADC_SAMPLE_BUFF_SIZE *sizeof(uint16)));
+  98:source\asw/main.c **** }
+  99:source\asw/main.c **** 
+ 100:source\asw/main.c **** /**
+ 101:source\asw/main.c ****  * Interrupt Service Routine (ISR) for Button
+ 102:source\asw/main.c ****  * @return void
+ 103:source\asw/main.c ****  */
+ 104:source\asw/main.c **** void isr_Button_handler()
+ 105:source\asw/main.c **** {
+  28              		.loc 1 105 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32 0000 08B5     		push	{r3, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 3, -8
+  35              		.cfi_offset 14, -4
+ 106:source\asw/main.c ****     IRQ_BUTTON_ClearPending();
+  36              		.loc 1 106 0
+  37 0002 FFF7FEFF 		bl	IRQ_BUTTON_ClearPending
+  38              	.LVL0:
+ 107:source\asw/main.c ****     
+ 108:source\asw/main.c ****     /* sets the Button pressed flag */
+ 109:source\asw/main.c ****     setEvent(EV_BUTTON);
+  39              		.loc 1 109 0
+  40 0006 0020     		movs	r0, #0
+  41 0008 FFF7FEFF 		bl	setEvent
+  42              	.LVL1:
+  43 000c 08BD     		pop	{r3, pc}
+  44              		.cfi_endproc
+  45              	.LFE65:
+  46              		.size	isr_Button_handler, .-isr_Button_handler
+  47 000e 00BF     		.section	.text.isr_Uart_handler_onRX,"ax",%progbits
+  48              		.align	2
+  49              		.global	isr_Uart_handler_onRX
+  50              		.thumb
+  51              		.thumb_func
+  52              		.type	isr_Uart_handler_onRX, %function
+  53              	isr_Uart_handler_onRX:
+  54              	.LFB66:
+ 110:source\asw/main.c **** }
+ 111:source\asw/main.c **** 
+ 112:source\asw/main.c **** /**
+ 113:source\asw/main.c ****  * Interrupt Service Routine (ISR) for UART
+ 114:source\asw/main.c ****  * @return void
+ 115:source\asw/main.c ****  */
+ 116:source\asw/main.c **** void isr_Uart_handler_onRX()
+ 117:source\asw/main.c **** {
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 4
+
+
+  55              		.loc 1 117 0
+  56              		.cfi_startproc
+  57              		@ args = 0, pretend = 0, frame = 0
+  58              		@ frame_needed = 0, uses_anonymous_args = 0
+  59 0000 08B5     		push	{r3, lr}
+  60              		.cfi_def_cfa_offset 8
+  61              		.cfi_offset 3, -8
+  62              		.cfi_offset 14, -4
+ 118:source\asw/main.c ****     IRQ_UART_ClearPending();
+  63              		.loc 1 118 0
+  64 0002 FFF7FEFF 		bl	IRQ_UART_ClearPending
+  65              	.LVL2:
+ 119:source\asw/main.c ****     
+ 120:source\asw/main.c ****     /* Sets the UART reception Flag */
+ 121:source\asw/main.c ****     setEvent(EV_UART_RX);
+  66              		.loc 1 121 0
+  67 0006 0120     		movs	r0, #1
+  68 0008 FFF7FEFF 		bl	setEvent
+  69              	.LVL3:
+  70 000c 08BD     		pop	{r3, pc}
+  71              		.cfi_endproc
+  72              	.LFE66:
+  73              		.size	isr_Uart_handler_onRX, .-isr_Uart_handler_onRX
+  74 000e 00BF     		.section	.text.isr_DMA_handler_onEOC,"ax",%progbits
+  75              		.align	2
+  76              		.global	isr_DMA_handler_onEOC
+  77              		.thumb
+  78              		.thumb_func
+  79              		.type	isr_DMA_handler_onEOC, %function
+  80              	isr_DMA_handler_onEOC:
+  81              	.LFB67:
+ 122:source\asw/main.c **** }
+ 123:source\asw/main.c **** 
+ 124:source\asw/main.c **** /**
+ 125:source\asw/main.c ****  * Interrupt Service Routine (ISR) for DMA
+ 126:source\asw/main.c ****  * @return void
+ 127:source\asw/main.c ****  */
+ 128:source\asw/main.c **** void isr_DMA_handler_onEOC()
+ 129:source\asw/main.c **** {   
+  82              		.loc 1 129 0
+  83              		.cfi_startproc
+  84              		@ args = 0, pretend = 0, frame = 0
+  85              		@ frame_needed = 0, uses_anonymous_args = 0
+  86 0000 08B5     		push	{r3, lr}
+  87              		.cfi_def_cfa_offset 8
+  88              		.cfi_offset 3, -8
+  89              		.cfi_offset 14, -4
+ 130:source\asw/main.c ****     IRQ_DMA_ClearPending();
+  90              		.loc 1 130 0
+  91 0002 FFF7FEFF 		bl	IRQ_DMA_ClearPending
+  92              	.LVL4:
+ 131:source\asw/main.c ****     
+ 132:source\asw/main.c ****     /* sets the DMA completion flag */
+ 133:source\asw/main.c ****     setEvent(EV_DMA_COMPLETE);
+  93              		.loc 1 133 0
+  94 0006 0220     		movs	r0, #2
+  95 0008 FFF7FEFF 		bl	setEvent
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 5
+
+
+  96              	.LVL5:
+  97 000c 08BD     		pop	{r3, pc}
+  98              		.cfi_endproc
+  99              	.LFE67:
+ 100              		.size	isr_DMA_handler_onEOC, .-isr_DMA_handler_onEOC
+ 101 000e 00BF     		.section	.text.peripheral_init,"ax",%progbits
+ 102              		.align	2
+ 103              		.global	peripheral_init
+ 104              		.thumb
+ 105              		.thumb_func
+ 106              		.type	peripheral_init, %function
+ 107              	peripheral_init:
+ 108              	.LFB64:
+  86:source\asw/main.c ****     /* Initializes the waveform DAC */
+ 109              		.loc 1 86 0
+ 110              		.cfi_startproc
+ 111              		@ args = 0, pretend = 0, frame = 0
+ 112              		@ frame_needed = 0, uses_anonymous_args = 0
+ 113 0000 08B5     		push	{r3, lr}
+ 114              		.cfi_def_cfa_offset 8
+ 115              		.cfi_offset 3, -8
+ 116              		.cfi_offset 14, -4
+  88:source\asw/main.c ****     
+ 117              		.loc 1 88 0
+ 118 0002 FFF7FEFF 		bl	WaveDAC_Start
+ 119              	.LVL6:
+  91:source\asw/main.c ****     
+ 120              		.loc 1 91 0
+ 121 0006 FFF7FEFF 		bl	UART_Start
+ 122              	.LVL7:
+  94:source\asw/main.c ****     
+ 123              		.loc 1 94 0
+ 124 000a FFF7FEFF 		bl	ADC_DelSig_Start
+ 125              	.LVL8:
+  97:source\asw/main.c **** }
+ 126              		.loc 1 97 0
+ 127 000e 4FF40061 		mov	r1, #2048
+ 128 0012 0248     		ldr	r0, .L9
+ 129 0014 FFF7FEFF 		bl	DMA_Initialize
+ 130              	.LVL9:
+ 131 0018 08BD     		pop	{r3, pc}
+ 132              	.L10:
+ 133 001a 00BF     		.align	2
+ 134              	.L9:
+ 135 001c 00000000 		.word	AdcSamplesFromDMA
+ 136              		.cfi_endproc
+ 137              	.LFE64:
+ 138              		.size	peripheral_init, .-peripheral_init
+ 139              		.section	.text.main,"ax",%progbits
+ 140              		.align	2
+ 141              		.global	main
+ 142              		.thumb
+ 143              		.thumb_func
+ 144              		.type	main, %function
+ 145              	main:
+ 146              	.LFB63:
+  51:source\asw/main.c ****     /* Enable global interrupts. */
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 6
+
+
+ 147              		.loc 1 51 0
+ 148              		.cfi_startproc
+ 149              		@ Volatile: function does not return.
+ 150              		@ args = 0, pretend = 0, frame = 0
+ 151              		@ frame_needed = 0, uses_anonymous_args = 0
+ 152 0000 08B5     		push	{r3, lr}
+ 153              		.cfi_def_cfa_offset 8
+ 154              		.cfi_offset 3, -8
+ 155              		.cfi_offset 14, -4
+  53:source\asw/main.c **** 
+ 156              		.loc 1 53 0
+ 157              		.syntax unified
+ 158              	@ 53 "source\asw\main.c" 1
+ 159 0002 62B6     		CPSIE   i
+ 160              	@ 0 "" 2
+  56:source\asw/main.c ****     
+ 161              		.loc 1 56 0
+ 162              		.thumb
+ 163              		.syntax unified
+ 164 0004 0948     		ldr	r0, .L14
+ 165 0006 FFF7FEFF 		bl	IRQ_BUTTON_StartEx
+ 166              	.LVL10:
+  59:source\asw/main.c ****     
+ 167              		.loc 1 59 0
+ 168 000a 0948     		ldr	r0, .L14+4
+ 169 000c FFF7FEFF 		bl	IRQ_UART_StartEx
+ 170              	.LVL11:
+  62:source\asw/main.c ****     
+ 171              		.loc 1 62 0
+ 172 0010 0848     		ldr	r0, .L14+8
+ 173 0012 FFF7FEFF 		bl	IRQ_DMA_StartEx
+ 174              	.LVL12:
+  67:source\asw/main.c ****     
+ 175              		.loc 1 67 0
+ 176 0016 FFF7FEFF 		bl	peripheral_init
+ 177              	.LVL13:
+  71:source\asw/main.c **** 
+ 178              		.loc 1 71 0
+ 179 001a FFF7FEFF 		bl	ledIndictor_systemIsIdle
+ 180              	.LVL14:
+ 181              	.L12:
+  76:source\asw/main.c ****     }
+ 182              		.loc 1 76 0 discriminator 1
+ 183 001e 4FF40061 		mov	r1, #2048
+ 184 0022 0548     		ldr	r0, .L14+12
+ 185 0024 FFF7FEFF 		bl	movementDetector_StateMachine
+ 186              	.LVL15:
+ 187 0028 F9E7     		b	.L12
+ 188              	.L15:
+ 189 002a 00BF     		.align	2
+ 190              	.L14:
+ 191 002c 00000000 		.word	isr_Button_handler
+ 192 0030 00000000 		.word	isr_Uart_handler_onRX
+ 193 0034 00000000 		.word	isr_DMA_handler_onEOC
+ 194 0038 00000000 		.word	AdcSamplesFromDMA
+ 195              		.cfi_endproc
+ 196              	.LFE63:
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 7
+
+
+ 197              		.size	main, .-main
+ 198              		.comm	AdcSamplesFromDMA,2048,4
+ 199              		.text
+ 200              	.Letext0:
+ 201              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.3\\psoc creator\\import\\gnu\\arm\\5.4.
+ 202              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.3\\psoc creator\\import\\gnu\\arm\\5.4.
+ 203              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 204              		.file 5 "Generated_Source\\PSoC5/core_cm3.h"
+ 205              		.file 6 "Generated_Source\\PSoC5/IRQ_BUTTON.h"
+ 206              		.file 7 "source\\asw\\movementDetector.h"
+ 207              		.file 8 "Generated_Source\\PSoC5/IRQ_UART.h"
+ 208              		.file 9 "Generated_Source\\PSoC5/IRQ_DMA.h"
+ 209              		.file 10 "Generated_Source\\PSoC5/WaveDAC.h"
+ 210              		.file 11 "Generated_Source\\PSoC5/UART.h"
+ 211              		.file 12 "Generated_Source\\PSoC5/ADC_DelSig.h"
+ 212              		.file 13 ".\\source\\bsw/dma.h"
+ 213              		.section	.debug_info,"",%progbits
+ 214              	.Ldebug_info0:
+ 215 0000 F2020000 		.4byte	0x2f2
+ 216 0004 0400     		.2byte	0x4
+ 217 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 218 000a 04       		.byte	0x4
+ 219 000b 01       		.uleb128 0x1
+ 220 000c A0000000 		.4byte	.LASF39
+ 221 0010 0C       		.byte	0xc
+ 222 0011 48020000 		.4byte	.LASF40
+ 223 0015 F4020000 		.4byte	.LASF41
+ 224 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 225 001d 00000000 		.4byte	0
+ 226 0021 00000000 		.4byte	.Ldebug_line0
+ 227 0025 02       		.uleb128 0x2
+ 228 0026 01       		.byte	0x1
+ 229 0027 06       		.byte	0x6
+ 230 0028 E8020000 		.4byte	.LASF0
+ 231 002c 02       		.uleb128 0x2
+ 232 002d 01       		.byte	0x1
+ 233 002e 08       		.byte	0x8
+ 234 002f 92000000 		.4byte	.LASF1
+ 235 0033 02       		.uleb128 0x2
+ 236 0034 02       		.byte	0x2
+ 237 0035 05       		.byte	0x5
+ 238 0036 AE020000 		.4byte	.LASF2
+ 239 003a 02       		.uleb128 0x2
+ 240 003b 02       		.byte	0x2
+ 241 003c 07       		.byte	0x7
+ 242 003d 40010000 		.4byte	.LASF3
+ 243 0041 03       		.uleb128 0x3
+ 244 0042 32000000 		.4byte	.LASF9
+ 245 0046 02       		.byte	0x2
+ 246 0047 3F       		.byte	0x3f
+ 247 0048 4C000000 		.4byte	0x4c
+ 248 004c 02       		.uleb128 0x2
+ 249 004d 04       		.byte	0x4
+ 250 004e 05       		.byte	0x5
+ 251 004f C9020000 		.4byte	.LASF4
+ 252 0053 02       		.uleb128 0x2
+ 253 0054 04       		.byte	0x4
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 8
+
+
+ 254 0055 07       		.byte	0x7
+ 255 0056 2E010000 		.4byte	.LASF5
+ 256 005a 02       		.uleb128 0x2
+ 257 005b 08       		.byte	0x8
+ 258 005c 05       		.byte	0x5
+ 259 005d 00000000 		.4byte	.LASF6
+ 260 0061 02       		.uleb128 0x2
+ 261 0062 08       		.byte	0x8
+ 262 0063 07       		.byte	0x7
+ 263 0064 02020000 		.4byte	.LASF7
+ 264 0068 04       		.uleb128 0x4
+ 265 0069 04       		.byte	0x4
+ 266 006a 05       		.byte	0x5
+ 267 006b 696E7400 		.ascii	"int\000"
+ 268 006f 02       		.uleb128 0x2
+ 269 0070 04       		.byte	0x4
+ 270 0071 07       		.byte	0x7
+ 271 0072 DF010000 		.4byte	.LASF8
+ 272 0076 03       		.uleb128 0x3
+ 273 0077 65000000 		.4byte	.LASF10
+ 274 007b 03       		.byte	0x3
+ 275 007c 2C       		.byte	0x2c
+ 276 007d 41000000 		.4byte	0x41
+ 277 0081 05       		.uleb128 0x5
+ 278 0082 BB010000 		.4byte	.LASF11
+ 279 0086 04       		.byte	0x4
+ 280 0087 E501     		.2byte	0x1e5
+ 281 0089 3A000000 		.4byte	0x3a
+ 282 008d 02       		.uleb128 0x2
+ 283 008e 04       		.byte	0x4
+ 284 008f 04       		.byte	0x4
+ 285 0090 8C000000 		.4byte	.LASF12
+ 286 0094 02       		.uleb128 0x2
+ 287 0095 08       		.byte	0x8
+ 288 0096 04       		.byte	0x4
+ 289 0097 A1010000 		.4byte	.LASF13
+ 290 009b 02       		.uleb128 0x2
+ 291 009c 01       		.byte	0x1
+ 292 009d 08       		.byte	0x8
+ 293 009e 5A020000 		.4byte	.LASF14
+ 294 00a2 02       		.uleb128 0x2
+ 295 00a3 08       		.byte	0x8
+ 296 00a4 04       		.byte	0x4
+ 297 00a5 23020000 		.4byte	.LASF15
+ 298 00a9 02       		.uleb128 0x2
+ 299 00aa 04       		.byte	0x4
+ 300 00ab 07       		.byte	0x7
+ 301 00ac 2F020000 		.4byte	.LASF16
+ 302 00b0 06       		.uleb128 0x6
+ 303 00b1 C2010000 		.4byte	.LASF42
+ 304 00b5 01       		.byte	0x1
+ 305 00b6 2C000000 		.4byte	0x2c
+ 306 00ba 07       		.byte	0x7
+ 307 00bb 0C       		.byte	0xc
+ 308 00bc D3000000 		.4byte	0xd3
+ 309 00c0 07       		.uleb128 0x7
+ 310 00c1 19020000 		.4byte	.LASF17
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 9
+
+
+ 311 00c5 00       		.byte	0
+ 312 00c6 07       		.uleb128 0x7
+ 313 00c7 3C000000 		.4byte	.LASF18
+ 314 00cb 01       		.byte	0x1
+ 315 00cc 07       		.uleb128 0x7
+ 316 00cd CA010000 		.4byte	.LASF19
+ 317 00d1 02       		.byte	0x2
+ 318 00d2 00       		.byte	0
+ 319 00d3 08       		.uleb128 0x8
+ 320 00d4 0E000000 		.4byte	.LASF20
+ 321 00d8 01       		.byte	0x1
+ 322 00d9 68       		.byte	0x68
+ 323 00da 00000000 		.4byte	.LFB65
+ 324 00de 0E000000 		.4byte	.LFE65-.LFB65
+ 325 00e2 01       		.uleb128 0x1
+ 326 00e3 9C       		.byte	0x9c
+ 327 00e4 01010000 		.4byte	0x101
+ 328 00e8 09       		.uleb128 0x9
+ 329 00e9 06000000 		.4byte	.LVL0
+ 330 00ed 66020000 		.4byte	0x266
+ 331 00f1 0A       		.uleb128 0xa
+ 332 00f2 0C000000 		.4byte	.LVL1
+ 333 00f6 71020000 		.4byte	0x271
+ 334 00fa 0B       		.uleb128 0xb
+ 335 00fb 01       		.uleb128 0x1
+ 336 00fc 50       		.byte	0x50
+ 337 00fd 01       		.uleb128 0x1
+ 338 00fe 30       		.byte	0x30
+ 339 00ff 00       		.byte	0
+ 340 0100 00       		.byte	0
+ 341 0101 08       		.uleb128 0x8
+ 342 0102 D2020000 		.4byte	.LASF21
+ 343 0106 01       		.byte	0x1
+ 344 0107 74       		.byte	0x74
+ 345 0108 00000000 		.4byte	.LFB66
+ 346 010c 0E000000 		.4byte	.LFE66-.LFB66
+ 347 0110 01       		.uleb128 0x1
+ 348 0111 9C       		.byte	0x9c
+ 349 0112 2F010000 		.4byte	0x12f
+ 350 0116 09       		.uleb128 0x9
+ 351 0117 06000000 		.4byte	.LVL2
+ 352 011b 7C020000 		.4byte	0x27c
+ 353 011f 0A       		.uleb128 0xa
+ 354 0120 0C000000 		.4byte	.LVL3
+ 355 0124 71020000 		.4byte	0x271
+ 356 0128 0B       		.uleb128 0xb
+ 357 0129 01       		.uleb128 0x1
+ 358 012a 50       		.byte	0x50
+ 359 012b 01       		.uleb128 0x1
+ 360 012c 31       		.byte	0x31
+ 361 012d 00       		.byte	0
+ 362 012e 00       		.byte	0
+ 363 012f 08       		.uleb128 0x8
+ 364 0130 EC010000 		.4byte	.LASF22
+ 365 0134 01       		.byte	0x1
+ 366 0135 80       		.byte	0x80
+ 367 0136 00000000 		.4byte	.LFB67
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 10
+
+
+ 368 013a 0E000000 		.4byte	.LFE67-.LFB67
+ 369 013e 01       		.uleb128 0x1
+ 370 013f 9C       		.byte	0x9c
+ 371 0140 5D010000 		.4byte	0x15d
+ 372 0144 09       		.uleb128 0x9
+ 373 0145 06000000 		.4byte	.LVL4
+ 374 0149 87020000 		.4byte	0x287
+ 375 014d 0A       		.uleb128 0xa
+ 376 014e 0C000000 		.4byte	.LVL5
+ 377 0152 71020000 		.4byte	0x271
+ 378 0156 0B       		.uleb128 0xb
+ 379 0157 01       		.uleb128 0x1
+ 380 0158 50       		.byte	0x50
+ 381 0159 01       		.uleb128 0x1
+ 382 015a 32       		.byte	0x32
+ 383 015b 00       		.byte	0
+ 384 015c 00       		.byte	0
+ 385 015d 08       		.uleb128 0x8
+ 386 015e 7C000000 		.4byte	.LASF23
+ 387 0162 01       		.byte	0x1
+ 388 0163 55       		.byte	0x55
+ 389 0164 00000000 		.4byte	.LFB64
+ 390 0168 20000000 		.4byte	.LFE64-.LFB64
+ 391 016c 01       		.uleb128 0x1
+ 392 016d 9C       		.byte	0x9c
+ 393 016e A8010000 		.4byte	0x1a8
+ 394 0172 09       		.uleb128 0x9
+ 395 0173 06000000 		.4byte	.LVL6
+ 396 0177 92020000 		.4byte	0x292
+ 397 017b 09       		.uleb128 0x9
+ 398 017c 0A000000 		.4byte	.LVL7
+ 399 0180 9D020000 		.4byte	0x29d
+ 400 0184 09       		.uleb128 0x9
+ 401 0185 0E000000 		.4byte	.LVL8
+ 402 0189 A8020000 		.4byte	0x2a8
+ 403 018d 0A       		.uleb128 0xa
+ 404 018e 18000000 		.4byte	.LVL9
+ 405 0192 B3020000 		.4byte	0x2b3
+ 406 0196 0B       		.uleb128 0xb
+ 407 0197 01       		.uleb128 0x1
+ 408 0198 50       		.byte	0x50
+ 409 0199 05       		.uleb128 0x5
+ 410 019a 03       		.byte	0x3
+ 411 019b 00000000 		.4byte	AdcSamplesFromDMA
+ 412 019f 0B       		.uleb128 0xb
+ 413 01a0 01       		.uleb128 0x1
+ 414 01a1 51       		.byte	0x51
+ 415 01a2 03       		.uleb128 0x3
+ 416 01a3 0A       		.byte	0xa
+ 417 01a4 0008     		.2byte	0x800
+ 418 01a6 00       		.byte	0
+ 419 01a7 00       		.byte	0
+ 420 01a8 0C       		.uleb128 0xc
+ 421 01a9 DA010000 		.4byte	.LASF43
+ 422 01ad 01       		.byte	0x1
+ 423 01ae 32       		.byte	0x32
+ 424 01af 68000000 		.4byte	0x68
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 11
+
+
+ 425 01b3 00000000 		.4byte	.LFB63
+ 426 01b7 3C000000 		.4byte	.LFE63-.LFB63
+ 427 01bb 01       		.uleb128 0x1
+ 428 01bc 9C       		.byte	0x9c
+ 429 01bd 33020000 		.4byte	0x233
+ 430 01c1 0D       		.uleb128 0xd
+ 431 01c2 0A000000 		.4byte	.LVL10
+ 432 01c6 BE020000 		.4byte	0x2be
+ 433 01ca D8010000 		.4byte	0x1d8
+ 434 01ce 0B       		.uleb128 0xb
+ 435 01cf 01       		.uleb128 0x1
+ 436 01d0 50       		.byte	0x50
+ 437 01d1 05       		.uleb128 0x5
+ 438 01d2 03       		.byte	0x3
+ 439 01d3 00000000 		.4byte	isr_Button_handler
+ 440 01d7 00       		.byte	0
+ 441 01d8 0D       		.uleb128 0xd
+ 442 01d9 10000000 		.4byte	.LVL11
+ 443 01dd C9020000 		.4byte	0x2c9
+ 444 01e1 EF010000 		.4byte	0x1ef
+ 445 01e5 0B       		.uleb128 0xb
+ 446 01e6 01       		.uleb128 0x1
+ 447 01e7 50       		.byte	0x50
+ 448 01e8 05       		.uleb128 0x5
+ 449 01e9 03       		.byte	0x3
+ 450 01ea 00000000 		.4byte	isr_Uart_handler_onRX
+ 451 01ee 00       		.byte	0
+ 452 01ef 0D       		.uleb128 0xd
+ 453 01f0 16000000 		.4byte	.LVL12
+ 454 01f4 D4020000 		.4byte	0x2d4
+ 455 01f8 06020000 		.4byte	0x206
+ 456 01fc 0B       		.uleb128 0xb
+ 457 01fd 01       		.uleb128 0x1
+ 458 01fe 50       		.byte	0x50
+ 459 01ff 05       		.uleb128 0x5
+ 460 0200 03       		.byte	0x3
+ 461 0201 00000000 		.4byte	isr_DMA_handler_onEOC
+ 462 0205 00       		.byte	0
+ 463 0206 09       		.uleb128 0x9
+ 464 0207 1A000000 		.4byte	.LVL13
+ 465 020b 5D010000 		.4byte	0x15d
+ 466 020f 09       		.uleb128 0x9
+ 467 0210 1E000000 		.4byte	.LVL14
+ 468 0214 DF020000 		.4byte	0x2df
+ 469 0218 0A       		.uleb128 0xa
+ 470 0219 28000000 		.4byte	.LVL15
+ 471 021d EA020000 		.4byte	0x2ea
+ 472 0221 0B       		.uleb128 0xb
+ 473 0222 01       		.uleb128 0x1
+ 474 0223 50       		.byte	0x50
+ 475 0224 05       		.uleb128 0x5
+ 476 0225 03       		.byte	0x3
+ 477 0226 00000000 		.4byte	AdcSamplesFromDMA
+ 478 022a 0B       		.uleb128 0xb
+ 479 022b 01       		.uleb128 0x1
+ 480 022c 51       		.byte	0x51
+ 481 022d 03       		.uleb128 0x3
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 12
+
+
+ 482 022e 0A       		.byte	0xa
+ 483 022f 0008     		.2byte	0x800
+ 484 0231 00       		.byte	0
+ 485 0232 00       		.byte	0
+ 486 0233 0E       		.uleb128 0xe
+ 487 0234 5E010000 		.4byte	.LASF24
+ 488 0238 05       		.byte	0x5
+ 489 0239 1207     		.2byte	0x712
+ 490 023b 3F020000 		.4byte	0x23f
+ 491 023f 0F       		.uleb128 0xf
+ 492 0240 76000000 		.4byte	0x76
+ 493 0244 10       		.uleb128 0x10
+ 494 0245 81000000 		.4byte	0x81
+ 495 0249 55020000 		.4byte	0x255
+ 496 024d 11       		.uleb128 0x11
+ 497 024e A9000000 		.4byte	0xa9
+ 498 0252 FF03     		.2byte	0x3ff
+ 499 0254 00       		.byte	0
+ 500 0255 12       		.uleb128 0x12
+ 501 0256 5F020000 		.4byte	.LASF25
+ 502 025a 01       		.byte	0x1
+ 503 025b 16       		.byte	0x16
+ 504 025c 44020000 		.4byte	0x244
+ 505 0260 05       		.uleb128 0x5
+ 506 0261 03       		.byte	0x3
+ 507 0262 00000000 		.4byte	AdcSamplesFromDMA
+ 508 0266 13       		.uleb128 0x13
+ 509 0267 6B010000 		.4byte	.LASF26
+ 510 026b 6B010000 		.4byte	.LASF26
+ 511 026f 06       		.byte	0x6
+ 512 0270 28       		.byte	0x28
+ 513 0271 13       		.uleb128 0x13
+ 514 0272 5C000000 		.4byte	.LASF27
+ 515 0276 5C000000 		.4byte	.LASF27
+ 516 027a 07       		.byte	0x7
+ 517 027b 20       		.byte	0x20
+ 518 027c 13       		.uleb128 0x13
+ 519 027d 7F020000 		.4byte	.LASF28
+ 520 0281 7F020000 		.4byte	.LASF28
+ 521 0285 08       		.byte	0x8
+ 522 0286 28       		.byte	0x28
+ 523 0287 13       		.uleb128 0x13
+ 524 0288 47000000 		.4byte	.LASF29
+ 525 028c 47000000 		.4byte	.LASF29
+ 526 0290 09       		.byte	0x9
+ 527 0291 28       		.byte	0x28
+ 528 0292 13       		.uleb128 0x13
+ 529 0293 71020000 		.4byte	.LASF30
+ 530 0297 71020000 		.4byte	.LASF30
+ 531 029b 0A       		.byte	0xa
+ 532 029c 67       		.byte	0x67
+ 533 029d 13       		.uleb128 0x13
+ 534 029e 53010000 		.4byte	.LASF31
+ 535 02a2 53010000 		.4byte	.LASF31
+ 536 02a6 0B       		.byte	0xb
+ 537 02a7 54       		.byte	0x54
+ 538 02a8 13       		.uleb128 0x13
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 13
+
+
+ 539 02a9 B8020000 		.4byte	.LASF32
+ 540 02ad B8020000 		.4byte	.LASF32
+ 541 02b1 0C       		.byte	0xc
+ 542 02b2 3A       		.byte	0x3a
+ 543 02b3 13       		.uleb128 0x13
+ 544 02b4 6D000000 		.4byte	.LASF33
+ 545 02b8 6D000000 		.4byte	.LASF33
+ 546 02bc 0D       		.byte	0xd
+ 547 02bd 12       		.byte	0x12
+ 548 02be 13       		.uleb128 0x13
+ 549 02bf A8010000 		.4byte	.LASF34
+ 550 02c3 A8010000 		.4byte	.LASF34
+ 551 02c7 06       		.byte	0x6
+ 552 02c8 18       		.byte	0x18
+ 553 02c9 13       		.uleb128 0x13
+ 554 02ca 21000000 		.4byte	.LASF35
+ 555 02ce 21000000 		.4byte	.LASF35
+ 556 02d2 08       		.byte	0x8
+ 557 02d3 18       		.byte	0x18
+ 558 02d4 13       		.uleb128 0x13
+ 559 02d5 38020000 		.4byte	.LASF36
+ 560 02d9 38020000 		.4byte	.LASF36
+ 561 02dd 09       		.byte	0x9
+ 562 02de 18       		.byte	0x18
+ 563 02df 13       		.uleb128 0x13
+ 564 02e0 95020000 		.4byte	.LASF37
+ 565 02e4 95020000 		.4byte	.LASF37
+ 566 02e8 07       		.byte	0x7
+ 567 02e9 34       		.byte	0x34
+ 568 02ea 13       		.uleb128 0x13
+ 569 02eb 83010000 		.4byte	.LASF38
+ 570 02ef 83010000 		.4byte	.LASF38
+ 571 02f3 07       		.byte	0x7
+ 572 02f4 19       		.byte	0x19
+ 573 02f5 00       		.byte	0
+ 574              		.section	.debug_abbrev,"",%progbits
+ 575              	.Ldebug_abbrev0:
+ 576 0000 01       		.uleb128 0x1
+ 577 0001 11       		.uleb128 0x11
+ 578 0002 01       		.byte	0x1
+ 579 0003 25       		.uleb128 0x25
+ 580 0004 0E       		.uleb128 0xe
+ 581 0005 13       		.uleb128 0x13
+ 582 0006 0B       		.uleb128 0xb
+ 583 0007 03       		.uleb128 0x3
+ 584 0008 0E       		.uleb128 0xe
+ 585 0009 1B       		.uleb128 0x1b
+ 586 000a 0E       		.uleb128 0xe
+ 587 000b 55       		.uleb128 0x55
+ 588 000c 17       		.uleb128 0x17
+ 589 000d 11       		.uleb128 0x11
+ 590 000e 01       		.uleb128 0x1
+ 591 000f 10       		.uleb128 0x10
+ 592 0010 17       		.uleb128 0x17
+ 593 0011 00       		.byte	0
+ 594 0012 00       		.byte	0
+ 595 0013 02       		.uleb128 0x2
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 14
+
+
+ 596 0014 24       		.uleb128 0x24
+ 597 0015 00       		.byte	0
+ 598 0016 0B       		.uleb128 0xb
+ 599 0017 0B       		.uleb128 0xb
+ 600 0018 3E       		.uleb128 0x3e
+ 601 0019 0B       		.uleb128 0xb
+ 602 001a 03       		.uleb128 0x3
+ 603 001b 0E       		.uleb128 0xe
+ 604 001c 00       		.byte	0
+ 605 001d 00       		.byte	0
+ 606 001e 03       		.uleb128 0x3
+ 607 001f 16       		.uleb128 0x16
+ 608 0020 00       		.byte	0
+ 609 0021 03       		.uleb128 0x3
+ 610 0022 0E       		.uleb128 0xe
+ 611 0023 3A       		.uleb128 0x3a
+ 612 0024 0B       		.uleb128 0xb
+ 613 0025 3B       		.uleb128 0x3b
+ 614 0026 0B       		.uleb128 0xb
+ 615 0027 49       		.uleb128 0x49
+ 616 0028 13       		.uleb128 0x13
+ 617 0029 00       		.byte	0
+ 618 002a 00       		.byte	0
+ 619 002b 04       		.uleb128 0x4
+ 620 002c 24       		.uleb128 0x24
+ 621 002d 00       		.byte	0
+ 622 002e 0B       		.uleb128 0xb
+ 623 002f 0B       		.uleb128 0xb
+ 624 0030 3E       		.uleb128 0x3e
+ 625 0031 0B       		.uleb128 0xb
+ 626 0032 03       		.uleb128 0x3
+ 627 0033 08       		.uleb128 0x8
+ 628 0034 00       		.byte	0
+ 629 0035 00       		.byte	0
+ 630 0036 05       		.uleb128 0x5
+ 631 0037 16       		.uleb128 0x16
+ 632 0038 00       		.byte	0
+ 633 0039 03       		.uleb128 0x3
+ 634 003a 0E       		.uleb128 0xe
+ 635 003b 3A       		.uleb128 0x3a
+ 636 003c 0B       		.uleb128 0xb
+ 637 003d 3B       		.uleb128 0x3b
+ 638 003e 05       		.uleb128 0x5
+ 639 003f 49       		.uleb128 0x49
+ 640 0040 13       		.uleb128 0x13
+ 641 0041 00       		.byte	0
+ 642 0042 00       		.byte	0
+ 643 0043 06       		.uleb128 0x6
+ 644 0044 04       		.uleb128 0x4
+ 645 0045 01       		.byte	0x1
+ 646 0046 03       		.uleb128 0x3
+ 647 0047 0E       		.uleb128 0xe
+ 648 0048 0B       		.uleb128 0xb
+ 649 0049 0B       		.uleb128 0xb
+ 650 004a 49       		.uleb128 0x49
+ 651 004b 13       		.uleb128 0x13
+ 652 004c 3A       		.uleb128 0x3a
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 15
+
+
+ 653 004d 0B       		.uleb128 0xb
+ 654 004e 3B       		.uleb128 0x3b
+ 655 004f 0B       		.uleb128 0xb
+ 656 0050 01       		.uleb128 0x1
+ 657 0051 13       		.uleb128 0x13
+ 658 0052 00       		.byte	0
+ 659 0053 00       		.byte	0
+ 660 0054 07       		.uleb128 0x7
+ 661 0055 28       		.uleb128 0x28
+ 662 0056 00       		.byte	0
+ 663 0057 03       		.uleb128 0x3
+ 664 0058 0E       		.uleb128 0xe
+ 665 0059 1C       		.uleb128 0x1c
+ 666 005a 0B       		.uleb128 0xb
+ 667 005b 00       		.byte	0
+ 668 005c 00       		.byte	0
+ 669 005d 08       		.uleb128 0x8
+ 670 005e 2E       		.uleb128 0x2e
+ 671 005f 01       		.byte	0x1
+ 672 0060 3F       		.uleb128 0x3f
+ 673 0061 19       		.uleb128 0x19
+ 674 0062 03       		.uleb128 0x3
+ 675 0063 0E       		.uleb128 0xe
+ 676 0064 3A       		.uleb128 0x3a
+ 677 0065 0B       		.uleb128 0xb
+ 678 0066 3B       		.uleb128 0x3b
+ 679 0067 0B       		.uleb128 0xb
+ 680 0068 11       		.uleb128 0x11
+ 681 0069 01       		.uleb128 0x1
+ 682 006a 12       		.uleb128 0x12
+ 683 006b 06       		.uleb128 0x6
+ 684 006c 40       		.uleb128 0x40
+ 685 006d 18       		.uleb128 0x18
+ 686 006e 9742     		.uleb128 0x2117
+ 687 0070 19       		.uleb128 0x19
+ 688 0071 01       		.uleb128 0x1
+ 689 0072 13       		.uleb128 0x13
+ 690 0073 00       		.byte	0
+ 691 0074 00       		.byte	0
+ 692 0075 09       		.uleb128 0x9
+ 693 0076 898201   		.uleb128 0x4109
+ 694 0079 00       		.byte	0
+ 695 007a 11       		.uleb128 0x11
+ 696 007b 01       		.uleb128 0x1
+ 697 007c 31       		.uleb128 0x31
+ 698 007d 13       		.uleb128 0x13
+ 699 007e 00       		.byte	0
+ 700 007f 00       		.byte	0
+ 701 0080 0A       		.uleb128 0xa
+ 702 0081 898201   		.uleb128 0x4109
+ 703 0084 01       		.byte	0x1
+ 704 0085 11       		.uleb128 0x11
+ 705 0086 01       		.uleb128 0x1
+ 706 0087 31       		.uleb128 0x31
+ 707 0088 13       		.uleb128 0x13
+ 708 0089 00       		.byte	0
+ 709 008a 00       		.byte	0
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 16
+
+
+ 710 008b 0B       		.uleb128 0xb
+ 711 008c 8A8201   		.uleb128 0x410a
+ 712 008f 00       		.byte	0
+ 713 0090 02       		.uleb128 0x2
+ 714 0091 18       		.uleb128 0x18
+ 715 0092 9142     		.uleb128 0x2111
+ 716 0094 18       		.uleb128 0x18
+ 717 0095 00       		.byte	0
+ 718 0096 00       		.byte	0
+ 719 0097 0C       		.uleb128 0xc
+ 720 0098 2E       		.uleb128 0x2e
+ 721 0099 01       		.byte	0x1
+ 722 009a 3F       		.uleb128 0x3f
+ 723 009b 19       		.uleb128 0x19
+ 724 009c 03       		.uleb128 0x3
+ 725 009d 0E       		.uleb128 0xe
+ 726 009e 3A       		.uleb128 0x3a
+ 727 009f 0B       		.uleb128 0xb
+ 728 00a0 3B       		.uleb128 0x3b
+ 729 00a1 0B       		.uleb128 0xb
+ 730 00a2 27       		.uleb128 0x27
+ 731 00a3 19       		.uleb128 0x19
+ 732 00a4 49       		.uleb128 0x49
+ 733 00a5 13       		.uleb128 0x13
+ 734 00a6 8701     		.uleb128 0x87
+ 735 00a8 19       		.uleb128 0x19
+ 736 00a9 11       		.uleb128 0x11
+ 737 00aa 01       		.uleb128 0x1
+ 738 00ab 12       		.uleb128 0x12
+ 739 00ac 06       		.uleb128 0x6
+ 740 00ad 40       		.uleb128 0x40
+ 741 00ae 18       		.uleb128 0x18
+ 742 00af 9742     		.uleb128 0x2117
+ 743 00b1 19       		.uleb128 0x19
+ 744 00b2 01       		.uleb128 0x1
+ 745 00b3 13       		.uleb128 0x13
+ 746 00b4 00       		.byte	0
+ 747 00b5 00       		.byte	0
+ 748 00b6 0D       		.uleb128 0xd
+ 749 00b7 898201   		.uleb128 0x4109
+ 750 00ba 01       		.byte	0x1
+ 751 00bb 11       		.uleb128 0x11
+ 752 00bc 01       		.uleb128 0x1
+ 753 00bd 31       		.uleb128 0x31
+ 754 00be 13       		.uleb128 0x13
+ 755 00bf 01       		.uleb128 0x1
+ 756 00c0 13       		.uleb128 0x13
+ 757 00c1 00       		.byte	0
+ 758 00c2 00       		.byte	0
+ 759 00c3 0E       		.uleb128 0xe
+ 760 00c4 34       		.uleb128 0x34
+ 761 00c5 00       		.byte	0
+ 762 00c6 03       		.uleb128 0x3
+ 763 00c7 0E       		.uleb128 0xe
+ 764 00c8 3A       		.uleb128 0x3a
+ 765 00c9 0B       		.uleb128 0xb
+ 766 00ca 3B       		.uleb128 0x3b
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 17
+
+
+ 767 00cb 05       		.uleb128 0x5
+ 768 00cc 49       		.uleb128 0x49
+ 769 00cd 13       		.uleb128 0x13
+ 770 00ce 3F       		.uleb128 0x3f
+ 771 00cf 19       		.uleb128 0x19
+ 772 00d0 3C       		.uleb128 0x3c
+ 773 00d1 19       		.uleb128 0x19
+ 774 00d2 00       		.byte	0
+ 775 00d3 00       		.byte	0
+ 776 00d4 0F       		.uleb128 0xf
+ 777 00d5 35       		.uleb128 0x35
+ 778 00d6 00       		.byte	0
+ 779 00d7 49       		.uleb128 0x49
+ 780 00d8 13       		.uleb128 0x13
+ 781 00d9 00       		.byte	0
+ 782 00da 00       		.byte	0
+ 783 00db 10       		.uleb128 0x10
+ 784 00dc 01       		.uleb128 0x1
+ 785 00dd 01       		.byte	0x1
+ 786 00de 49       		.uleb128 0x49
+ 787 00df 13       		.uleb128 0x13
+ 788 00e0 01       		.uleb128 0x1
+ 789 00e1 13       		.uleb128 0x13
+ 790 00e2 00       		.byte	0
+ 791 00e3 00       		.byte	0
+ 792 00e4 11       		.uleb128 0x11
+ 793 00e5 21       		.uleb128 0x21
+ 794 00e6 00       		.byte	0
+ 795 00e7 49       		.uleb128 0x49
+ 796 00e8 13       		.uleb128 0x13
+ 797 00e9 2F       		.uleb128 0x2f
+ 798 00ea 05       		.uleb128 0x5
+ 799 00eb 00       		.byte	0
+ 800 00ec 00       		.byte	0
+ 801 00ed 12       		.uleb128 0x12
+ 802 00ee 34       		.uleb128 0x34
+ 803 00ef 00       		.byte	0
+ 804 00f0 03       		.uleb128 0x3
+ 805 00f1 0E       		.uleb128 0xe
+ 806 00f2 3A       		.uleb128 0x3a
+ 807 00f3 0B       		.uleb128 0xb
+ 808 00f4 3B       		.uleb128 0x3b
+ 809 00f5 0B       		.uleb128 0xb
+ 810 00f6 49       		.uleb128 0x49
+ 811 00f7 13       		.uleb128 0x13
+ 812 00f8 3F       		.uleb128 0x3f
+ 813 00f9 19       		.uleb128 0x19
+ 814 00fa 02       		.uleb128 0x2
+ 815 00fb 18       		.uleb128 0x18
+ 816 00fc 00       		.byte	0
+ 817 00fd 00       		.byte	0
+ 818 00fe 13       		.uleb128 0x13
+ 819 00ff 2E       		.uleb128 0x2e
+ 820 0100 00       		.byte	0
+ 821 0101 3F       		.uleb128 0x3f
+ 822 0102 19       		.uleb128 0x19
+ 823 0103 3C       		.uleb128 0x3c
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 18
+
+
+ 824 0104 19       		.uleb128 0x19
+ 825 0105 6E       		.uleb128 0x6e
+ 826 0106 0E       		.uleb128 0xe
+ 827 0107 03       		.uleb128 0x3
+ 828 0108 0E       		.uleb128 0xe
+ 829 0109 3A       		.uleb128 0x3a
+ 830 010a 0B       		.uleb128 0xb
+ 831 010b 3B       		.uleb128 0x3b
+ 832 010c 0B       		.uleb128 0xb
+ 833 010d 00       		.byte	0
+ 834 010e 00       		.byte	0
+ 835 010f 00       		.byte	0
+ 836              		.section	.debug_aranges,"",%progbits
+ 837 0000 3C000000 		.4byte	0x3c
+ 838 0004 0200     		.2byte	0x2
+ 839 0006 00000000 		.4byte	.Ldebug_info0
+ 840 000a 04       		.byte	0x4
+ 841 000b 00       		.byte	0
+ 842 000c 0000     		.2byte	0
+ 843 000e 0000     		.2byte	0
+ 844 0010 00000000 		.4byte	.LFB65
+ 845 0014 0E000000 		.4byte	.LFE65-.LFB65
+ 846 0018 00000000 		.4byte	.LFB66
+ 847 001c 0E000000 		.4byte	.LFE66-.LFB66
+ 848 0020 00000000 		.4byte	.LFB67
+ 849 0024 0E000000 		.4byte	.LFE67-.LFB67
+ 850 0028 00000000 		.4byte	.LFB64
+ 851 002c 20000000 		.4byte	.LFE64-.LFB64
+ 852 0030 00000000 		.4byte	.LFB63
+ 853 0034 3C000000 		.4byte	.LFE63-.LFB63
+ 854 0038 00000000 		.4byte	0
+ 855 003c 00000000 		.4byte	0
+ 856              		.section	.debug_ranges,"",%progbits
+ 857              	.Ldebug_ranges0:
+ 858 0000 00000000 		.4byte	.LFB65
+ 859 0004 0E000000 		.4byte	.LFE65
+ 860 0008 00000000 		.4byte	.LFB66
+ 861 000c 0E000000 		.4byte	.LFE66
+ 862 0010 00000000 		.4byte	.LFB67
+ 863 0014 0E000000 		.4byte	.LFE67
+ 864 0018 00000000 		.4byte	.LFB64
+ 865 001c 20000000 		.4byte	.LFE64
+ 866 0020 00000000 		.4byte	.LFB63
+ 867 0024 3C000000 		.4byte	.LFE63
+ 868 0028 00000000 		.4byte	0
+ 869 002c 00000000 		.4byte	0
+ 870              		.section	.debug_line,"",%progbits
+ 871              	.Ldebug_line0:
+ 872 0000 3F020000 		.section	.debug_str,"MS",%progbits,1
+ 872      0200D501 
+ 872      00000201 
+ 872      FB0E0D00 
+ 872      01010101 
+ 873              	.LASF6:
+ 874 0000 6C6F6E67 		.ascii	"long long int\000"
+ 874      206C6F6E 
+ 874      6720696E 
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 19
+
+
+ 874      7400
+ 875              	.LASF20:
+ 876 000e 6973725F 		.ascii	"isr_Button_handler\000"
+ 876      42757474 
+ 876      6F6E5F68 
+ 876      616E646C 
+ 876      657200
+ 877              	.LASF35:
+ 878 0021 4952515F 		.ascii	"IRQ_UART_StartEx\000"
+ 878      55415254 
+ 878      5F537461 
+ 878      72744578 
+ 878      00
+ 879              	.LASF9:
+ 880 0032 5F5F696E 		.ascii	"__int32_t\000"
+ 880      7433325F 
+ 880      7400
+ 881              	.LASF18:
+ 882 003c 45565F55 		.ascii	"EV_UART_RX\000"
+ 882      4152545F 
+ 882      525800
+ 883              	.LASF29:
+ 884 0047 4952515F 		.ascii	"IRQ_DMA_ClearPending\000"
+ 884      444D415F 
+ 884      436C6561 
+ 884      7250656E 
+ 884      64696E67 
+ 885              	.LASF27:
+ 886 005c 73657445 		.ascii	"setEvent\000"
+ 886      76656E74 
+ 886      00
+ 887              	.LASF10:
+ 888 0065 696E7433 		.ascii	"int32_t\000"
+ 888      325F7400 
+ 889              	.LASF33:
+ 890 006d 444D415F 		.ascii	"DMA_Initialize\000"
+ 890      496E6974 
+ 890      69616C69 
+ 890      7A6500
+ 891              	.LASF23:
+ 892 007c 70657269 		.ascii	"peripheral_init\000"
+ 892      70686572 
+ 892      616C5F69 
+ 892      6E697400 
+ 893              	.LASF12:
+ 894 008c 666C6F61 		.ascii	"float\000"
+ 894      7400
+ 895              	.LASF1:
+ 896 0092 756E7369 		.ascii	"unsigned char\000"
+ 896      676E6564 
+ 896      20636861 
+ 896      7200
+ 897              	.LASF39:
+ 898 00a0 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 898      43313120 
+ 898      352E342E 
+ 898      31203230 
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 20
+
+
+ 898      31363036 
+ 899 00d3 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 899      20726576 
+ 899      6973696F 
+ 899      6E203233 
+ 899      37373135 
+ 900 0106 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 900      66756E63 
+ 900      74696F6E 
+ 900      2D736563 
+ 900      74696F6E 
+ 901              	.LASF5:
+ 902 012e 6C6F6E67 		.ascii	"long unsigned int\000"
+ 902      20756E73 
+ 902      69676E65 
+ 902      6420696E 
+ 902      7400
+ 903              	.LASF3:
+ 904 0140 73686F72 		.ascii	"short unsigned int\000"
+ 904      7420756E 
+ 904      7369676E 
+ 904      65642069 
+ 904      6E7400
+ 905              	.LASF31:
+ 906 0153 55415254 		.ascii	"UART_Start\000"
+ 906      5F537461 
+ 906      727400
+ 907              	.LASF24:
+ 908 015e 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 908      52784275 
+ 908      66666572 
+ 908      00
+ 909              	.LASF26:
+ 910 016b 4952515F 		.ascii	"IRQ_BUTTON_ClearPending\000"
+ 910      42555454 
+ 910      4F4E5F43 
+ 910      6C656172 
+ 910      50656E64 
+ 911              	.LASF38:
+ 912 0183 6D6F7665 		.ascii	"movementDetector_StateMachine\000"
+ 912      6D656E74 
+ 912      44657465 
+ 912      63746F72 
+ 912      5F537461 
+ 913              	.LASF13:
+ 914 01a1 646F7562 		.ascii	"double\000"
+ 914      6C6500
+ 915              	.LASF34:
+ 916 01a8 4952515F 		.ascii	"IRQ_BUTTON_StartEx\000"
+ 916      42555454 
+ 916      4F4E5F53 
+ 916      74617274 
+ 916      457800
+ 917              	.LASF11:
+ 918 01bb 75696E74 		.ascii	"uint16\000"
+ 918      313600
+ 919              	.LASF42:
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 21
+
+
+ 920 01c2 6576656E 		.ascii	"event_e\000"
+ 920      745F6500 
+ 921              	.LASF19:
+ 922 01ca 45565F44 		.ascii	"EV_DMA_COMPLETE\000"
+ 922      4D415F43 
+ 922      4F4D504C 
+ 922      45544500 
+ 923              	.LASF43:
+ 924 01da 6D61696E 		.ascii	"main\000"
+ 924      00
+ 925              	.LASF8:
+ 926 01df 756E7369 		.ascii	"unsigned int\000"
+ 926      676E6564 
+ 926      20696E74 
+ 926      00
+ 927              	.LASF22:
+ 928 01ec 6973725F 		.ascii	"isr_DMA_handler_onEOC\000"
+ 928      444D415F 
+ 928      68616E64 
+ 928      6C65725F 
+ 928      6F6E454F 
+ 929              	.LASF7:
+ 930 0202 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 930      206C6F6E 
+ 930      6720756E 
+ 930      7369676E 
+ 930      65642069 
+ 931              	.LASF17:
+ 932 0219 45565F42 		.ascii	"EV_BUTTON\000"
+ 932      5554544F 
+ 932      4E00
+ 933              	.LASF15:
+ 934 0223 6C6F6E67 		.ascii	"long double\000"
+ 934      20646F75 
+ 934      626C6500 
+ 935              	.LASF16:
+ 936 022f 73697A65 		.ascii	"sizetype\000"
+ 936      74797065 
+ 936      00
+ 937              	.LASF36:
+ 938 0238 4952515F 		.ascii	"IRQ_DMA_StartEx\000"
+ 938      444D415F 
+ 938      53746172 
+ 938      74457800 
+ 939              	.LASF40:
+ 940 0248 736F7572 		.ascii	"source\\asw\\main.c\000"
+ 940      63655C61 
+ 940      73775C6D 
+ 940      61696E2E 
+ 940      6300
+ 941              	.LASF14:
+ 942 025a 63686172 		.ascii	"char\000"
+ 942      00
+ 943              	.LASF25:
+ 944 025f 41646353 		.ascii	"AdcSamplesFromDMA\000"
+ 944      616D706C 
+ 944      65734672 
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 22
+
+
+ 944      6F6D444D 
+ 944      4100
+ 945              	.LASF30:
+ 946 0271 57617665 		.ascii	"WaveDAC_Start\000"
+ 946      4441435F 
+ 946      53746172 
+ 946      7400
+ 947              	.LASF28:
+ 948 027f 4952515F 		.ascii	"IRQ_UART_ClearPending\000"
+ 948      55415254 
+ 948      5F436C65 
+ 948      61725065 
+ 948      6E64696E 
+ 949              	.LASF37:
+ 950 0295 6C656449 		.ascii	"ledIndictor_systemIsIdle\000"
+ 950      6E646963 
+ 950      746F725F 
+ 950      73797374 
+ 950      656D4973 
+ 951              	.LASF2:
+ 952 02ae 73686F72 		.ascii	"short int\000"
+ 952      7420696E 
+ 952      7400
+ 953              	.LASF32:
+ 954 02b8 4144435F 		.ascii	"ADC_DelSig_Start\000"
+ 954      44656C53 
+ 954      69675F53 
+ 954      74617274 
+ 954      00
+ 955              	.LASF4:
+ 956 02c9 6C6F6E67 		.ascii	"long int\000"
+ 956      20696E74 
+ 956      00
+ 957              	.LASF21:
+ 958 02d2 6973725F 		.ascii	"isr_Uart_handler_onRX\000"
+ 958      55617274 
+ 958      5F68616E 
+ 958      646C6572 
+ 958      5F6F6E52 
+ 959              	.LASF0:
+ 960 02e8 7369676E 		.ascii	"signed char\000"
+ 960      65642063 
+ 960      68617200 
+ 961              	.LASF41:
+ 962 02f4 433A5C61 		.ascii	"C:\\aadarshxp\\_MastersEmbeddedSystem\\Semester-2\\"
+ 962      61646172 
+ 962      73687870 
+ 962      5C5F4D61 
+ 962      73746572 
+ 963 0323 53797374 		.ascii	"SystemLevelHardwareDesign\\movement_detection_using"
+ 963      656D4C65 
+ 963      76656C48 
+ 963      61726477 
+ 963      61726544 
+ 964 0355 5F726164 		.ascii	"_radar\\40_Implementation\\work\\20_SW\\Workspace_S"
+ 964      61725C34 
+ 964      305F496D 
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccJ0IjVs.s 			page 23
+
+
+ 964      706C656D 
+ 964      656E7461 
+ 965 0384 4448445F 		.ascii	"DHD_FreeSoc2\\SDHD_MovementDetection.cydsn\000"
+ 965      46726565 
+ 965      536F6332 
+ 965      5C534448 
+ 965      445F4D6F 
+ 966              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

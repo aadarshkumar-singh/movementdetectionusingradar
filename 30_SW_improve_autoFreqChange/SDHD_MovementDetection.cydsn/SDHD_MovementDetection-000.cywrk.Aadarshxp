@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CyXmlSerializer>
+<!--This file is machine generated and read. It is not intended to be edited by hand.-->
+<!--Due to this, there is no schema for this file.-->
+<CyGuid_843a90a4-0c4b-4e44-991d-05e7fb117a21 type_name="CyDesigner.Common.ProjMgmt.Model.CyPrjMgmtWrkspcCustomData" version="4">
+<CyGuid_fdba8dfd-b15b-4469-9bbb-9e40c3e70997 type_name="CyDesigner.Common.Base.CyCustomData" version="2">
+<userData>
+<dataGuid v="5f2be1a5-0687-4501-bb8c-cf21cb8211bf">
+<CyGuid_5f2be1a5-0687-4501-bb8c-cf21cb8211bf type_name="CyDesigner.Common.ProjMgmt.GUI.CyBookmarkData" version="1">
+<indicators />
+</CyGuid_5f2be1a5-0687-4501-bb8c-cf21cb8211bf>
+</dataGuid>
+<dataGuid v="1b906a0f-a7b6-4e4d-a428-82f98b53cb35">
+<CyGuid_1b906a0f-a7b6-4e4d-a428-82f98b53cb35 type_name="CyDesigner.Common.ProjMgmt.GUI.CyExplorerWindow+CyExplorerWindowState" version="3" SelectedTab="Source">
+<TreeKeys>
+<v>Source</v>
+<v>Components</v>
+<v>Output</v>
+</TreeKeys>
+<TreeStates>
+<CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237 type_name="CyDesigner.Common.Base.Controls.CyTreeViewState" version="1" SelectedNodeId="SDHD_MovementDetection-000\SDHD_MovementDetection\TopDesign">
+<ExpandedNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\TopDesign</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Pins</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Analog</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Clocks</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Interrupts</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\DMA</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\System</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Directives</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Flash Security</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\EEPROM</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\cyapicallbacks.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\main.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\movementDetector.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\movementDetector.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\derivate.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\dma.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\dma.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\global.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\led.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\led.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Generated_Source</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Generated_Source\PSoC5</v>
+</ExpandedNodeIds>
+<VisibleNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\TopDesign</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Pins</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Analog</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Clocks</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Interrupts</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\DMA</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\System</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Directives</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\Flash Security</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.cydwr\EEPROM</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\cyapicallbacks.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\main.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\movementDetector.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\asw\movementDetector.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\derivate.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\dma.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\dma.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\global.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\led.c</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Source Files\bsw\led.h</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Generated_Source</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Generated_Source\PSoC5</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Generated_Source\PSoC5\ADC_DelSig</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\Generated_Source\PSoC5\ADC_DelSig_AMux</v>
+</VisibleNodeIds>
+</CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237>
+<CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237 type_name="CyDesigner.Common.Base.Controls.CyTreeViewState" version="1" SelectedNodeId="">
+<ExpandedNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\TopDesign</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\TopDesign\TopDesign.cysch</v>
+</ExpandedNodeIds>
+<VisibleNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\TopDesign</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\TopDesign\TopDesign.cysch</v>
+</VisibleNodeIds>
+</CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237>
+<CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237 type_name="CyDesigner.Common.Base.Controls.CyTreeViewState" version="1" SelectedNodeId="">
+<ExpandedNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_AMux.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_Ext_CP_Clk.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_INT.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_IRQ.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_PM.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_theACLK.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\AnalogOutFromDAC.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\BUTTON_1.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_150KHz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_200KHz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_350KHz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_500Khz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_600.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Cm3Start.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cy_em_eeprom.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyBootAsmGnu.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyDmac.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cyfitter_cfg.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyFlash.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyLib.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cymetadata.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cyPm.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CySpc.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cyutils.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Debounce_Clock.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\dma.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\DMA_ForAdc_dma.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\InputToAdc.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\IRQ_DMA.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\IRQ_UART.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\led.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\LED_yellow.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\main.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\movementDetector.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\MuxControlRegister.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\MuxControlRegister_PM.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\UART.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\UART_BOOT.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\UART_INT.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\UART_IntClock.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\UART_PM.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC_BuffAmp.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC_BuffAmp_PM.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC_PM.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC_VDAC8.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC_VDAC8_PM.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC_Wave1_DMA_dma.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\WaveDAC_Wave2_DMA_dma.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\SDHD_MovementDetection.elf</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\SDHD_MovementDetection.hex</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\SDHD_MovementDetection.map</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.gpdsc</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection.rpt</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\SDHD_MovementDetection_timing.html</v>
+</ExpandedNodeIds>
+<VisibleNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_AMux.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_Ext_CP_Clk.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_INT.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_IRQ.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_PM.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\ADC_DelSig_theACLK.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\AnalogOutFromDAC.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\BUTTON_1.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_150KHz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_200KHz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_350KHz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_500Khz.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Clk_600.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\Cm3Start.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cy_em_eeprom.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyBootAsmGnu.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyDmac.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cyfitter_cfg.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyFlash.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CyLib.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cymetadata.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\cyPm.lst</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CortexM3\ARM_GCC_541\Debug\Listing Files\CySpc.lst</v>
+</VisibleNodeIds>
+</CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237>
+</TreeStates>
+<TreeKeysV2>
+<v>Datasheet</v>
+</TreeKeysV2>
+<TreeStatesV2>
+<CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237 type_name="CyDesigner.Common.Base.Controls.CyTreeViewState" version="1" SelectedNodeId="">
+<ExpandedNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\PSoC 5LP Architecture TRM</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CY8C58LP Family Datasheet</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\System Reference Guides</v>
+</ExpandedNodeIds>
+<VisibleNodeIds>
+<v>SDHD_MovementDetection-000</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\PSoC 5LP Architecture TRM</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\CY8C58LP Family Datasheet</v>
+<v>SDHD_MovementDetection-000\SDHD_MovementDetection\System Reference Guides</v>
+</VisibleNodeIds>
+</CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237>
+</TreeStatesV2>
+</CyGuid_1b906a0f-a7b6-4e4d-a428-82f98b53cb35>
+</dataGuid>
+</userData>
+</CyGuid_fdba8dfd-b15b-4469-9bbb-9e40c3e70997>
+<Unloaded />
+<OpenDocs>
+<name v=".\source\asw\movementDetector.c" />
+<name v=".\TopDesign\TopDesign.cysch" />
+<name v=".\source\bsw\led.c" />
+<name v=".\source\bsw\led.h" />
+</OpenDocs>
+<OpenDocsLayout><![CDATA[<?xml version="1.0"?><!--
+
+  Actipro Docking/MDI for WinForms
+  Copyright (c) 2001-2016 Actipro Software LLC.  All rights reserved.
+  http://www.actiprosoftware.com
+
+--><DocumentLayout Version="1.0"><LayoutData><TabbedMdiRootContainer Orientation="Horizontal"><TabbedMdiContainer Size="972, 526" SelectedTabbedMdiWindow="006c5280-bf22-4596-ab0d-59623b64e9db"><ToolWindow Key="Start Page:bd4649ab-da6b-4d04-a663-c722b8bf99db:Start Page" Guid="b43a4e27-e98f-4d63-b012-05745ef3b450" /><DocumentWindow Key="C:\aadarshxp\_MastersEmbeddedSystem\Semester-2\SystemLevelHardwareDesign\movement_detection_using_radar\40_Implementation\work\30_SW_improve_autoFreqChange\SDHD_MovementDetection.cydsn\source\asw\movementDetector.c" Guid="98ae8307-06b2-4dbf-b4c5-c36da0352d87" /><DocumentWindow Key="C:\aadarshxp\_MastersEmbeddedSystem\Semester-2\SystemLevelHardwareDesign\movement_detection_using_radar\40_Implementation\work\30_SW_improve_autoFreqChange\SDHD_MovementDetection.cydsn\TopDesign\TopDesign.cysch" Guid="a8cf1f2b-0680-4c29-a265-38a01285d697" /><DocumentWindow Key="C:\aadarshxp\_MastersEmbeddedSystem\Semester-2\SystemLevelHardwareDesign\movement_detection_using_radar\40_Implementation\work\30_SW_improve_autoFreqChange\SDHD_MovementDetection.cydsn\source\bsw\led.c" Guid="ca13d45e-2355-4b3c-b555-a0c4a980be5e" /><DocumentWindow Key="C:\aadarshxp\_MastersEmbeddedSystem\Semester-2\SystemLevelHardwareDesign\movement_detection_using_radar\40_Implementation\work\30_SW_improve_autoFreqChange\SDHD_MovementDetection.cydsn\source\bsw\led.h" Guid="006c5280-bf22-4596-ab0d-59623b64e9db" /></TabbedMdiContainer></TabbedMdiRootContainer><FloatingContainers /></LayoutData></DocumentLayout>]]></OpenDocsLayout>
+<config v="" />
+<AutoUpdate v="true" />
+</CyGuid_843a90a4-0c4b-4e44-991d-05e7fb117a21>
+</CyXmlSerializer>

@@ -1,0 +1,2587 @@
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"movementDetector.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.setEvent,"ax",%progbits
+  20              		.align	2
+  21              		.global	setEvent
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	setEvent, %function
+  25              	setEvent:
+  26              	.LFB64:
+  27              		.file 1 "source\\asw\\movementDetector.c"
+   1:source\asw/movementDetector.c **** /**
+   2:source\asw/movementDetector.c **** * \file movementDetector.c
+   3:source\asw/movementDetector.c **** * \author Aadarsh Kumar Singh
+   4:source\asw/movementDetector.c **** * \date 11.06.2020
+   5:source\asw/movementDetector.c **** **/
+   6:source\asw/movementDetector.c **** 
+   7:source\asw/movementDetector.c **** #include "project.h"
+   8:source\asw/movementDetector.c **** #include "movementDetector.h"
+   9:source\asw/movementDetector.c **** #include "led.h"
+  10:source\asw/movementDetector.c **** #include "dma.h"
+  11:source\asw/movementDetector.c **** 
+  12:source\asw/movementDetector.c **** /** Maximum number of times the data is sent to testbench*/
+  13:source\asw/movementDetector.c **** #define MAXIMUM_COUNTS 10 
+  14:source\asw/movementDetector.c **** 
+  15:source\asw/movementDetector.c **** /** Maximum number of frequency variation possible*/
+  16:source\asw/movementDetector.c **** #define MAXIMUM_FREQ_VARIATION 10
+  17:source\asw/movementDetector.c **** 
+  18:source\asw/movementDetector.c **** /* Counter value for checking the no of times data is tx to matlab */
+  19:source\asw/movementDetector.c **** static  uint8_t counter = 0;
+  20:source\asw/movementDetector.c **** 
+  21:source\asw/movementDetector.c **** /* Flag for detection of Button Press,
+  22:source\asw/movementDetector.c ****    default state - False, on button Press : True */
+  23:source\asw/movementDetector.c **** volatile boolean_t buttonPressedFlag = FALSE ;
+  24:source\asw/movementDetector.c **** 
+  25:source\asw/movementDetector.c **** /* Flag for detection of DMA completion ,
+  26:source\asw/movementDetector.c ****    default state - False, on DMA completion : True */
+  27:source\asw/movementDetector.c **** volatile boolean_t dmaCompletionFlag = FALSE;
+  28:source\asw/movementDetector.c **** 
+  29:source\asw/movementDetector.c **** /* Flag for detection of UART,
+  30:source\asw/movementDetector.c ****    default state - False, on receiving data on COM port : True */
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 2
+
+
+  31:source\asw/movementDetector.c **** volatile boolean_t UART_RX_Flag = FALSE ;
+  32:source\asw/movementDetector.c **** 
+  33:source\asw/movementDetector.c **** /* Enum that defines States for the state machine */
+  34:source\asw/movementDetector.c **** typedef enum state_e{
+  35:source\asw/movementDetector.c ****     STATE_IDLE,                     /* Waiting for starting the measurement */
+  36:source\asw/movementDetector.c ****     STATE_MEASUREMENT,              /* Measurement started waiting for the Reciever to send 's' by 
+  37:source\asw/movementDetector.c ****     STATE_WAIT_FOR_MEASUREMENT_END, /* Waiting for the DMA to finish reading ADC samples */
+  38:source\asw/movementDetector.c ****     STATE_TRANSFER_DATA,            /* Waiting for the PSoC to finish transmiting ADC samples */
+  39:source\asw/movementDetector.c **** } state_t ;
+  40:source\asw/movementDetector.c **** 
+  41:source\asw/movementDetector.c **** /**
+  42:source\asw/movementDetector.c ****  * State machine for the movement detection 
+  43:source\asw/movementDetector.c ****  * @param : uint16* buffer - pointer to the buffer containing ADC samples 
+  44:source\asw/movementDetector.c ****  * @param : uint16 length  - length of the buffer containing ADC samples
+  45:source\asw/movementDetector.c ****  * @return void
+  46:source\asw/movementDetector.c ****  */
+  47:source\asw/movementDetector.c **** void movementDetector_StateMachine(uint16 * buffer , uint16 length)
+  48:source\asw/movementDetector.c **** {
+  49:source\asw/movementDetector.c ****     /* Stores the state */
+  50:source\asw/movementDetector.c ****     static state_t state = STATE_IDLE ;
+  51:source\asw/movementDetector.c ****     static  uint8_t autoFreqChang = 0;
+  52:source\asw/movementDetector.c ****     
+  53:source\asw/movementDetector.c ****     switch(state)
+  54:source\asw/movementDetector.c ****     {
+  55:source\asw/movementDetector.c ****         case STATE_IDLE :    
+  56:source\asw/movementDetector.c ****             /* Waiting for the button to be pressed by the user to start measurement */
+  57:source\asw/movementDetector.c ****             if (getEvent(EV_BUTTON))
+  58:source\asw/movementDetector.c ****             {
+  59:source\asw/movementDetector.c ****                 /** Indicator LED - ready for measurement (Button has been pressed by user) */
+  60:source\asw/movementDetector.c ****                 /*  Red - Off , Green - Off , Yellow - On */
+  61:source\asw/movementDetector.c ****                 ledIndicator_ReadyForMeasurement();
+  62:source\asw/movementDetector.c ****                 
+  63:source\asw/movementDetector.c ****                 // Clear the button Event 
+  64:source\asw/movementDetector.c ****                 clearEvent(EV_BUTTON);
+  65:source\asw/movementDetector.c ****                                 
+  66:source\asw/movementDetector.c ****                 /* Starts the ADC sampling in continous mode */
+  67:source\asw/movementDetector.c ****                 ADC_DelSig_StartConvert(); 
+  68:source\asw/movementDetector.c ****                 
+  69:source\asw/movementDetector.c ****                 /* Change frequency by incrementing control register value to adjust Mux */
+  70:source\asw/movementDetector.c ****                 MuxControlRegister_Write(autoFreqChang);
+  71:source\asw/movementDetector.c ****                 autoFreqChang ++;
+  72:source\asw/movementDetector.c ****                 
+  73:source\asw/movementDetector.c ****                 /*Reset After 10 possible frequency variations*/
+  74:source\asw/movementDetector.c ****                 if(autoFreqChang == MAXIMUM_FREQ_VARIATION)
+  75:source\asw/movementDetector.c ****                 {
+  76:source\asw/movementDetector.c ****                     autoFreqChang = 0;
+  77:source\asw/movementDetector.c ****                 }
+  78:source\asw/movementDetector.c **** 
+  79:source\asw/movementDetector.c ****                 state = STATE_MEASUREMENT ; 
+  80:source\asw/movementDetector.c ****             }                    
+  81:source\asw/movementDetector.c ****             break;
+  82:source\asw/movementDetector.c ****      
+  83:source\asw/movementDetector.c ****         case STATE_MEASUREMENT:            
+  84:source\asw/movementDetector.c **** 
+  85:source\asw/movementDetector.c ****             /* start reading ADC samples on receiving 's' from matlab */
+  86:source\asw/movementDetector.c ****             /* The decision of enabling DMA as soons as s is received from matlab
+  87:source\asw/movementDetector.c ****             * was made so that we send the latest ADC samples on request from matlab */
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 3
+
+
+  88:source\asw/movementDetector.c ****           
+  89:source\asw/movementDetector.c ****             /* Waiting for the Reciever to send 's' by UART */
+  90:source\asw/movementDetector.c ****             if (getEvent(EV_UART_RX) && UART_GetChar() == 's' )
+  91:source\asw/movementDetector.c ****             {
+  92:source\asw/movementDetector.c ****                 /* Clear the Receiver(MATLAB) Ready event */
+  93:source\asw/movementDetector.c ****                 clearEvent(EV_UART_RX);
+  94:source\asw/movementDetector.c **** 
+  95:source\asw/movementDetector.c ****                 /* Enable DMA to start reading ADC samples */
+  96:source\asw/movementDetector.c ****                 DMA_Enable();
+  97:source\asw/movementDetector.c ****                                 
+  98:source\asw/movementDetector.c ****                 state = STATE_WAIT_FOR_MEASUREMENT_END ;
+  99:source\asw/movementDetector.c ****             }    
+ 100:source\asw/movementDetector.c ****             break;
+ 101:source\asw/movementDetector.c ****      
+ 102:source\asw/movementDetector.c ****         case STATE_WAIT_FOR_MEASUREMENT_END :
+ 103:source\asw/movementDetector.c ****           
+ 104:source\asw/movementDetector.c ****             /* Check if DMA has completed reading the ADC samples */
+ 105:source\asw/movementDetector.c ****             if (getEvent(EV_DMA_COMPLETE))
+ 106:source\asw/movementDetector.c ****             {
+ 107:source\asw/movementDetector.c ****                 /* Clear the DMA Completion event */
+ 108:source\asw/movementDetector.c ****                 clearEvent(EV_DMA_COMPLETE);
+ 109:source\asw/movementDetector.c ****             
+ 110:source\asw/movementDetector.c **** 
+ 111:source\asw/movementDetector.c ****                 /** Indicator Led - PSoC ready to send ADC samples */
+ 112:source\asw/movementDetector.c ****                 /* Red - Off, Green - On , Yellow - Off */
+ 113:source\asw/movementDetector.c ****                 ledIndicator_readyToSend();
+ 114:source\asw/movementDetector.c ****                 
+ 115:source\asw/movementDetector.c ****                 /* Send the sampled values to the reciever(MATLAB) */
+ 116:source\asw/movementDetector.c ****                 UART_PutArray((uint8*)buffer, length);              
+ 117:source\asw/movementDetector.c ****             
+ 118:source\asw/movementDetector.c ****                 state = STATE_TRANSFER_DATA;
+ 119:source\asw/movementDetector.c ****             }  
+ 120:source\asw/movementDetector.c ****             break;
+ 121:source\asw/movementDetector.c ****      
+ 122:source\asw/movementDetector.c ****         case STATE_TRANSFER_DATA : 
+ 123:source\asw/movementDetector.c ****           
+ 124:source\asw/movementDetector.c ****           /* Waiting for Acknowledgment (Reciever to send 'o' by UART) */
+ 125:source\asw/movementDetector.c ****           if (getEvent(EV_UART_RX) && UART_GetChar() == 'o')
+ 126:source\asw/movementDetector.c ****           {
+ 127:source\asw/movementDetector.c ****             clearEvent(EV_UART_RX);           
+ 128:source\asw/movementDetector.c ****             state = STATE_MEASUREMENT ;
+ 129:source\asw/movementDetector.c ****             counter++;
+ 130:source\asw/movementDetector.c ****           }          
+ 131:source\asw/movementDetector.c ****           if(counter == MAXIMUM_COUNTS)
+ 132:source\asw/movementDetector.c ****           {
+ 133:source\asw/movementDetector.c ****             state = STATE_IDLE;
+ 134:source\asw/movementDetector.c ****             counter = 0;
+ 135:source\asw/movementDetector.c ****             clearEvent(EV_ALL);
+ 136:source\asw/movementDetector.c ****           }
+ 137:source\asw/movementDetector.c ****         
+ 138:source\asw/movementDetector.c ****           break;
+ 139:source\asw/movementDetector.c ****     }
+ 140:source\asw/movementDetector.c ****         
+ 141:source\asw/movementDetector.c **** }
+ 142:source\asw/movementDetector.c **** 
+ 143:source\asw/movementDetector.c **** /**
+ 144:source\asw/movementDetector.c ****  * Sets Flag when the interrupt for the event arrives
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 4
+
+
+ 145:source\asw/movementDetector.c ****  * @param : event
+ 146:source\asw/movementDetector.c ****  * @return void
+ 147:source\asw/movementDetector.c ****  */
+ 148:source\asw/movementDetector.c **** void setEvent(event_t event)
+ 149:source\asw/movementDetector.c **** {
+  28              		.loc 1 149 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              	.LVL0:
+  33 0000 08B5     		push	{r3, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 3, -8
+  36              		.cfi_offset 14, -4
+ 150:source\asw/movementDetector.c ****     switch(event)
+  37              		.loc 1 150 0
+  38 0002 0128     		cmp	r0, #1
+  39 0004 0BD0     		beq	.L3
+  40 0006 10B1     		cbz	r0, .L4
+  41 0008 0228     		cmp	r0, #2
+  42 000a 04D0     		beq	.L5
+  43 000c 0BE0     		b	.L7
+  44              	.L4:
+ 151:source\asw/movementDetector.c ****     {
+ 152:source\asw/movementDetector.c ****         /* sets the Button pressed flag */
+ 153:source\asw/movementDetector.c ****         case EV_BUTTON :
+ 154:source\asw/movementDetector.c ****         
+ 155:source\asw/movementDetector.c ****             buttonPressedFlag = TRUE;
+  45              		.loc 1 155 0
+  46 000e 0122     		movs	r2, #1
+  47 0010 074B     		ldr	r3, .L9
+  48 0012 1A70     		strb	r2, [r3]
+ 156:source\asw/movementDetector.c ****             break;
+  49              		.loc 1 156 0
+  50 0014 08BD     		pop	{r3, pc}
+  51              	.L5:
+ 157:source\asw/movementDetector.c ****         
+ 158:source\asw/movementDetector.c ****         /* sets the DMA completion flag */
+ 159:source\asw/movementDetector.c ****         case EV_DMA_COMPLETE :
+ 160:source\asw/movementDetector.c ****             
+ 161:source\asw/movementDetector.c ****             dmaCompletionFlag = TRUE;
+  52              		.loc 1 161 0
+  53 0016 0122     		movs	r2, #1
+  54 0018 054B     		ldr	r3, .L9
+  55 001a 5A70     		strb	r2, [r3, #1]
+ 162:source\asw/movementDetector.c ****             break;
+  56              		.loc 1 162 0
+  57 001c 08BD     		pop	{r3, pc}
+  58              	.L3:
+ 163:source\asw/movementDetector.c ****         
+ 164:source\asw/movementDetector.c ****         /* Sets the UART reception Flag */
+ 165:source\asw/movementDetector.c ****         case EV_UART_RX :
+ 166:source\asw/movementDetector.c ****             UART_RX_Flag = TRUE;
+  59              		.loc 1 166 0
+  60 001e 0122     		movs	r2, #1
+  61 0020 034B     		ldr	r3, .L9
+  62 0022 9A70     		strb	r2, [r3, #2]
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 5
+
+
+ 167:source\asw/movementDetector.c ****             break ;          
+  63              		.loc 1 167 0
+  64 0024 08BD     		pop	{r3, pc}
+  65              	.L7:
+ 168:source\asw/movementDetector.c ****         
+ 169:source\asw/movementDetector.c ****         /* Invalid Event */ 
+ 170:source\asw/movementDetector.c ****         default: 
+ 171:source\asw/movementDetector.c ****             UART_PutString("Invalid Event ");
+  66              		.loc 1 171 0
+  67 0026 0348     		ldr	r0, .L9+4
+  68              	.LVL1:
+  69 0028 FFF7FEFF 		bl	UART_PutString
+  70              	.LVL2:
+  71 002c 08BD     		pop	{r3, pc}
+  72              	.L10:
+  73 002e 00BF     		.align	2
+  74              	.L9:
+  75 0030 00000000 		.word	.LANCHOR0
+  76 0034 00000000 		.word	.LC0
+  77              		.cfi_endproc
+  78              	.LFE64:
+  79              		.size	setEvent, .-setEvent
+  80              		.section	.text.clearEvent,"ax",%progbits
+  81              		.align	2
+  82              		.global	clearEvent
+  83              		.thumb
+  84              		.thumb_func
+  85              		.type	clearEvent, %function
+  86              	clearEvent:
+  87              	.LFB65:
+ 172:source\asw/movementDetector.c ****             break ;   
+ 173:source\asw/movementDetector.c ****     }
+ 174:source\asw/movementDetector.c ****        
+ 175:source\asw/movementDetector.c **** }
+ 176:source\asw/movementDetector.c **** 
+ 177:source\asw/movementDetector.c **** /**
+ 178:source\asw/movementDetector.c ****  * Clears the Flag when the interrupt for the event arrives
+ 179:source\asw/movementDetector.c ****  * @param : event
+ 180:source\asw/movementDetector.c ****  * @return void
+ 181:source\asw/movementDetector.c ****  */
+ 182:source\asw/movementDetector.c **** void clearEvent(event_t event)
+ 183:source\asw/movementDetector.c **** {
+  88              		.loc 1 183 0
+  89              		.cfi_startproc
+  90              		@ args = 0, pretend = 0, frame = 0
+  91              		@ frame_needed = 0, uses_anonymous_args = 0
+  92              	.LVL3:
+  93 0000 08B5     		push	{r3, lr}
+  94              		.cfi_def_cfa_offset 8
+  95              		.cfi_offset 3, -8
+  96              		.cfi_offset 14, -4
+ 184:source\asw/movementDetector.c ****     switch(event)
+  97              		.loc 1 184 0
+  98 0002 0328     		cmp	r0, #3
+  99 0004 15D8     		bhi	.L12
+ 100 0006 DFE800F0 		tbb	[pc, r0]
+ 101              	.L14:
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 6
+
+
+ 102 000a 02       		.byte	(.L13-.L14)/2
+ 103 000b 0A       		.byte	(.L15-.L14)/2
+ 104 000c 06       		.byte	(.L16-.L14)/2
+ 105 000d 0E       		.byte	(.L17-.L14)/2
+ 106              		.p2align 1
+ 107              	.L13:
+ 185:source\asw/movementDetector.c ****     {
+ 186:source\asw/movementDetector.c ****         /* Clears the Button pressed flag */
+ 187:source\asw/movementDetector.c ****         case EV_BUTTON :
+ 188:source\asw/movementDetector.c ****         
+ 189:source\asw/movementDetector.c ****             buttonPressedFlag = FALSE;
+ 108              		.loc 1 189 0
+ 109 000e 0022     		movs	r2, #0
+ 110 0010 0A4B     		ldr	r3, .L20
+ 111 0012 1A70     		strb	r2, [r3]
+ 190:source\asw/movementDetector.c ****             break;
+ 112              		.loc 1 190 0
+ 113 0014 08BD     		pop	{r3, pc}
+ 114              	.L16:
+ 191:source\asw/movementDetector.c ****         
+ 192:source\asw/movementDetector.c ****         /* Clears the DMA completion flag */
+ 193:source\asw/movementDetector.c ****         case EV_DMA_COMPLETE :
+ 194:source\asw/movementDetector.c ****             
+ 195:source\asw/movementDetector.c ****             dmaCompletionFlag = FALSE;
+ 115              		.loc 1 195 0
+ 116 0016 0022     		movs	r2, #0
+ 117 0018 084B     		ldr	r3, .L20
+ 118 001a 5A70     		strb	r2, [r3, #1]
+ 196:source\asw/movementDetector.c ****             break;
+ 119              		.loc 1 196 0
+ 120 001c 08BD     		pop	{r3, pc}
+ 121              	.L15:
+ 197:source\asw/movementDetector.c ****         
+ 198:source\asw/movementDetector.c ****         /* Clears the UART reception flag */
+ 199:source\asw/movementDetector.c ****         case EV_UART_RX :
+ 200:source\asw/movementDetector.c ****             UART_RX_Flag = FALSE;
+ 122              		.loc 1 200 0
+ 123 001e 0022     		movs	r2, #0
+ 124 0020 064B     		ldr	r3, .L20
+ 125 0022 9A70     		strb	r2, [r3, #2]
+ 201:source\asw/movementDetector.c ****             break ;
+ 126              		.loc 1 201 0
+ 127 0024 08BD     		pop	{r3, pc}
+ 128              	.L17:
+ 202:source\asw/movementDetector.c ****         
+ 203:source\asw/movementDetector.c ****         case EV_ALL :
+ 204:source\asw/movementDetector.c ****             buttonPressedFlag = FALSE;
+ 129              		.loc 1 204 0
+ 130 0026 054B     		ldr	r3, .L20
+ 131 0028 0022     		movs	r2, #0
+ 132 002a 1A70     		strb	r2, [r3]
+ 205:source\asw/movementDetector.c ****             dmaCompletionFlag = FALSE;
+ 133              		.loc 1 205 0
+ 134 002c 5A70     		strb	r2, [r3, #1]
+ 206:source\asw/movementDetector.c ****             UART_RX_Flag = FALSE;
+ 135              		.loc 1 206 0
+ 136 002e 9A70     		strb	r2, [r3, #2]
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 7
+
+
+ 207:source\asw/movementDetector.c ****             break;
+ 137              		.loc 1 207 0
+ 138 0030 08BD     		pop	{r3, pc}
+ 139              	.L12:
+ 208:source\asw/movementDetector.c ****         
+ 209:source\asw/movementDetector.c ****         /* Invalid Event */ 
+ 210:source\asw/movementDetector.c ****         default: 
+ 211:source\asw/movementDetector.c ****             UART_PutString("Invalid Event ");
+ 140              		.loc 1 211 0
+ 141 0032 0348     		ldr	r0, .L20+4
+ 142              	.LVL4:
+ 143 0034 FFF7FEFF 		bl	UART_PutString
+ 144              	.LVL5:
+ 145 0038 08BD     		pop	{r3, pc}
+ 146              	.L21:
+ 147 003a 00BF     		.align	2
+ 148              	.L20:
+ 149 003c 00000000 		.word	.LANCHOR0
+ 150 0040 00000000 		.word	.LC0
+ 151              		.cfi_endproc
+ 152              	.LFE65:
+ 153              		.size	clearEvent, .-clearEvent
+ 154              		.section	.text.getEvent,"ax",%progbits
+ 155              		.align	2
+ 156              		.global	getEvent
+ 157              		.thumb
+ 158              		.thumb_func
+ 159              		.type	getEvent, %function
+ 160              	getEvent:
+ 161              	.LFB66:
+ 212:source\asw/movementDetector.c ****             break ;   
+ 213:source\asw/movementDetector.c ****     }     
+ 214:source\asw/movementDetector.c **** }
+ 215:source\asw/movementDetector.c **** 
+ 216:source\asw/movementDetector.c **** /**
+ 217:source\asw/movementDetector.c ****  * Returns the value for the flag corresponding to the events
+ 218:source\asw/movementDetector.c ****  * @param : event
+ 219:source\asw/movementDetector.c ****  * @return boolean_t
+ 220:source\asw/movementDetector.c ****  */
+ 221:source\asw/movementDetector.c **** boolean_t getEvent(event_t event)
+ 222:source\asw/movementDetector.c **** {
+ 162              		.loc 1 222 0
+ 163              		.cfi_startproc
+ 164              		@ args = 0, pretend = 0, frame = 0
+ 165              		@ frame_needed = 0, uses_anonymous_args = 0
+ 166              	.LVL6:
+ 167 0000 08B5     		push	{r3, lr}
+ 168              		.cfi_def_cfa_offset 8
+ 169              		.cfi_offset 3, -8
+ 170              		.cfi_offset 14, -4
+ 171              	.LVL7:
+ 223:source\asw/movementDetector.c ****     boolean_t flag = FALSE  ;
+ 224:source\asw/movementDetector.c ****     switch(event)
+ 172              		.loc 1 224 0
+ 173 0002 0128     		cmp	r0, #1
+ 174 0004 0BD0     		beq	.L24
+ 175 0006 10B1     		cbz	r0, .L25
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 8
+
+
+ 176 0008 0228     		cmp	r0, #2
+ 177 000a 04D0     		beq	.L26
+ 178 000c 0BE0     		b	.L28
+ 179              	.L25:
+ 225:source\asw/movementDetector.c ****     {
+ 226:source\asw/movementDetector.c ****         /*Returns the state of button pressed flag*/
+ 227:source\asw/movementDetector.c ****         case EV_BUTTON :
+ 228:source\asw/movementDetector.c ****         
+ 229:source\asw/movementDetector.c ****             flag = buttonPressedFlag;
+ 180              		.loc 1 229 0
+ 181 000e 084B     		ldr	r3, .L30
+ 182 0010 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 183              	.LVL8:
+ 184 0012 C0B2     		uxtb	r0, r0
+ 185              	.LVL9:
+ 230:source\asw/movementDetector.c ****             break;
+ 186              		.loc 1 230 0
+ 187 0014 08BD     		pop	{r3, pc}
+ 188              	.LVL10:
+ 189              	.L26:
+ 231:source\asw/movementDetector.c ****         
+ 232:source\asw/movementDetector.c ****         /* Returns the state of dma completion*/
+ 233:source\asw/movementDetector.c ****         case EV_DMA_COMPLETE :
+ 234:source\asw/movementDetector.c ****             
+ 235:source\asw/movementDetector.c ****             flag = dmaCompletionFlag;
+ 190              		.loc 1 235 0
+ 191 0016 064B     		ldr	r3, .L30
+ 192 0018 5878     		ldrb	r0, [r3, #1]	@ zero_extendqisi2
+ 193              	.LVL11:
+ 194 001a C0B2     		uxtb	r0, r0
+ 195              	.LVL12:
+ 236:source\asw/movementDetector.c ****             break;
+ 196              		.loc 1 236 0
+ 197 001c 08BD     		pop	{r3, pc}
+ 198              	.LVL13:
+ 199              	.L24:
+ 237:source\asw/movementDetector.c ****         
+ 238:source\asw/movementDetector.c ****         /* Returns the state of UART reception */
+ 239:source\asw/movementDetector.c ****         case EV_UART_RX :
+ 240:source\asw/movementDetector.c ****             flag = UART_RX_Flag;
+ 200              		.loc 1 240 0
+ 201 001e 044B     		ldr	r3, .L30
+ 202 0020 9878     		ldrb	r0, [r3, #2]	@ zero_extendqisi2
+ 203              	.LVL14:
+ 204 0022 C0B2     		uxtb	r0, r0
+ 205              	.LVL15:
+ 241:source\asw/movementDetector.c ****             break ;
+ 206              		.loc 1 241 0
+ 207 0024 08BD     		pop	{r3, pc}
+ 208              	.LVL16:
+ 209              	.L28:
+ 242:source\asw/movementDetector.c ****         
+ 243:source\asw/movementDetector.c ****         /* Invalid Event */
+ 244:source\asw/movementDetector.c ****         default: 
+ 245:source\asw/movementDetector.c ****             UART_PutString("Invalid Event ");
+ 210              		.loc 1 245 0
+ 211 0026 0348     		ldr	r0, .L30+4
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 9
+
+
+ 212              	.LVL17:
+ 213 0028 FFF7FEFF 		bl	UART_PutString
+ 214              	.LVL18:
+ 223:source\asw/movementDetector.c ****     switch(event)
+ 215              		.loc 1 223 0
+ 216 002c 0020     		movs	r0, #0
+ 217              	.LVL19:
+ 246:source\asw/movementDetector.c ****             break ;   
+ 247:source\asw/movementDetector.c ****     }
+ 248:source\asw/movementDetector.c ****     
+ 249:source\asw/movementDetector.c ****     return flag ;
+ 250:source\asw/movementDetector.c **** }
+ 218              		.loc 1 250 0
+ 219 002e 08BD     		pop	{r3, pc}
+ 220              	.L31:
+ 221              		.align	2
+ 222              	.L30:
+ 223 0030 00000000 		.word	.LANCHOR0
+ 224 0034 00000000 		.word	.LC0
+ 225              		.cfi_endproc
+ 226              	.LFE66:
+ 227              		.size	getEvent, .-getEvent
+ 228              		.section	.text.ledIndictor_systemIsIdle,"ax",%progbits
+ 229              		.align	2
+ 230              		.global	ledIndictor_systemIsIdle
+ 231              		.thumb
+ 232              		.thumb_func
+ 233              		.type	ledIndictor_systemIsIdle, %function
+ 234              	ledIndictor_systemIsIdle:
+ 235              	.LFB67:
+ 251:source\asw/movementDetector.c **** 
+ 252:source\asw/movementDetector.c **** /**
+ 253:source\asw/movementDetector.c **** * Indicates the Initial(Idle) State of the movement detector 
+ 254:source\asw/movementDetector.c **** * Red - On , Green - Off , Yellow - Off
+ 255:source\asw/movementDetector.c **** */
+ 256:source\asw/movementDetector.c **** void ledIndictor_systemIsIdle()
+ 257:source\asw/movementDetector.c **** {
+ 236              		.loc 1 257 0
+ 237              		.cfi_startproc
+ 238              		@ args = 0, pretend = 0, frame = 0
+ 239              		@ frame_needed = 0, uses_anonymous_args = 0
+ 240 0000 08B5     		push	{r3, lr}
+ 241              		.cfi_def_cfa_offset 8
+ 242              		.cfi_offset 3, -8
+ 243              		.cfi_offset 14, -4
+ 258:source\asw/movementDetector.c ****     /* Red - On , Green - Off , Yellow - Off */
+ 259:source\asw/movementDetector.c ****     LED_Set(LED_GREEN,LED_OFF);
+ 244              		.loc 1 259 0
+ 245 0002 0021     		movs	r1, #0
+ 246 0004 0220     		movs	r0, #2
+ 247 0006 FFF7FEFF 		bl	LED_Set
+ 248              	.LVL20:
+ 260:source\asw/movementDetector.c ****     LED_Set(LED_RED,LED_ON);
+ 249              		.loc 1 260 0
+ 250 000a 0121     		movs	r1, #1
+ 251 000c 0020     		movs	r0, #0
+ 252 000e FFF7FEFF 		bl	LED_Set
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 10
+
+
+ 253              	.LVL21:
+ 261:source\asw/movementDetector.c ****     LED_Set(LED_YELLOW,LED_OFF);     
+ 254              		.loc 1 261 0
+ 255 0012 0021     		movs	r1, #0
+ 256 0014 0120     		movs	r0, #1
+ 257 0016 FFF7FEFF 		bl	LED_Set
+ 258              	.LVL22:
+ 259 001a 08BD     		pop	{r3, pc}
+ 260              		.cfi_endproc
+ 261              	.LFE67:
+ 262              		.size	ledIndictor_systemIsIdle, .-ledIndictor_systemIsIdle
+ 263              		.section	.text.ledIndicator_ReadyForMeasurement,"ax",%progbits
+ 264              		.align	2
+ 265              		.global	ledIndicator_ReadyForMeasurement
+ 266              		.thumb
+ 267              		.thumb_func
+ 268              		.type	ledIndicator_ReadyForMeasurement, %function
+ 269              	ledIndicator_ReadyForMeasurement:
+ 270              	.LFB68:
+ 262:source\asw/movementDetector.c **** }
+ 263:source\asw/movementDetector.c **** 
+ 264:source\asw/movementDetector.c **** /**
+ 265:source\asw/movementDetector.c **** * Indicates that its ready for measurement , i.e. Button has been pressed
+ 266:source\asw/movementDetector.c **** * Red - Off , Green - Off , Yellow - On
+ 267:source\asw/movementDetector.c **** */
+ 268:source\asw/movementDetector.c **** void ledIndicator_ReadyForMeasurement()
+ 269:source\asw/movementDetector.c **** {
+ 271              		.loc 1 269 0
+ 272              		.cfi_startproc
+ 273              		@ args = 0, pretend = 0, frame = 0
+ 274              		@ frame_needed = 0, uses_anonymous_args = 0
+ 275 0000 08B5     		push	{r3, lr}
+ 276              		.cfi_def_cfa_offset 8
+ 277              		.cfi_offset 3, -8
+ 278              		.cfi_offset 14, -4
+ 270:source\asw/movementDetector.c ****     LED_Set(LED_GREEN,LED_OFF);
+ 279              		.loc 1 270 0
+ 280 0002 0021     		movs	r1, #0
+ 281 0004 0220     		movs	r0, #2
+ 282 0006 FFF7FEFF 		bl	LED_Set
+ 283              	.LVL23:
+ 271:source\asw/movementDetector.c ****     LED_Set(LED_RED,LED_OFF);
+ 284              		.loc 1 271 0
+ 285 000a 0021     		movs	r1, #0
+ 286 000c 0846     		mov	r0, r1
+ 287 000e FFF7FEFF 		bl	LED_Set
+ 288              	.LVL24:
+ 272:source\asw/movementDetector.c ****     LED_Set(LED_YELLOW,LED_ON);   
+ 289              		.loc 1 272 0
+ 290 0012 0121     		movs	r1, #1
+ 291 0014 0846     		mov	r0, r1
+ 292 0016 FFF7FEFF 		bl	LED_Set
+ 293              	.LVL25:
+ 294 001a 08BD     		pop	{r3, pc}
+ 295              		.cfi_endproc
+ 296              	.LFE68:
+ 297              		.size	ledIndicator_ReadyForMeasurement, .-ledIndicator_ReadyForMeasurement
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 11
+
+
+ 298              		.section	.text.ledIndicator_readyToSend,"ax",%progbits
+ 299              		.align	2
+ 300              		.global	ledIndicator_readyToSend
+ 301              		.thumb
+ 302              		.thumb_func
+ 303              		.type	ledIndicator_readyToSend, %function
+ 304              	ledIndicator_readyToSend:
+ 305              	.LFB69:
+ 273:source\asw/movementDetector.c ****     
+ 274:source\asw/movementDetector.c **** }
+ 275:source\asw/movementDetector.c **** 
+ 276:source\asw/movementDetector.c **** /**
+ 277:source\asw/movementDetector.c **** * Indicates that measurement is started , i.e. PSoC ready to send ADC samples
+ 278:source\asw/movementDetector.c **** * Red - Off , Green - On , Yellow - Off
+ 279:source\asw/movementDetector.c **** */
+ 280:source\asw/movementDetector.c **** void ledIndicator_readyToSend()
+ 281:source\asw/movementDetector.c **** {
+ 306              		.loc 1 281 0
+ 307              		.cfi_startproc
+ 308              		@ args = 0, pretend = 0, frame = 0
+ 309              		@ frame_needed = 0, uses_anonymous_args = 0
+ 310 0000 08B5     		push	{r3, lr}
+ 311              		.cfi_def_cfa_offset 8
+ 312              		.cfi_offset 3, -8
+ 313              		.cfi_offset 14, -4
+ 282:source\asw/movementDetector.c ****     LED_Set(LED_GREEN,LED_ON);
+ 314              		.loc 1 282 0
+ 315 0002 0121     		movs	r1, #1
+ 316 0004 0220     		movs	r0, #2
+ 317 0006 FFF7FEFF 		bl	LED_Set
+ 318              	.LVL26:
+ 283:source\asw/movementDetector.c ****     LED_Set(LED_RED,LED_OFF);
+ 319              		.loc 1 283 0
+ 320 000a 0021     		movs	r1, #0
+ 321 000c 0846     		mov	r0, r1
+ 322 000e FFF7FEFF 		bl	LED_Set
+ 323              	.LVL27:
+ 284:source\asw/movementDetector.c ****     LED_Set(LED_YELLOW,LED_OFF);  
+ 324              		.loc 1 284 0
+ 325 0012 0021     		movs	r1, #0
+ 326 0014 0120     		movs	r0, #1
+ 327 0016 FFF7FEFF 		bl	LED_Set
+ 328              	.LVL28:
+ 329 001a 08BD     		pop	{r3, pc}
+ 330              		.cfi_endproc
+ 331              	.LFE69:
+ 332              		.size	ledIndicator_readyToSend, .-ledIndicator_readyToSend
+ 333              		.section	.text.movementDetector_StateMachine,"ax",%progbits
+ 334              		.align	2
+ 335              		.global	movementDetector_StateMachine
+ 336              		.thumb
+ 337              		.thumb_func
+ 338              		.type	movementDetector_StateMachine, %function
+ 339              	movementDetector_StateMachine:
+ 340              	.LFB63:
+  48:source\asw/movementDetector.c ****     /* Stores the state */
+ 341              		.loc 1 48 0
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 12
+
+
+ 342              		.cfi_startproc
+ 343              		@ args = 0, pretend = 0, frame = 0
+ 344              		@ frame_needed = 0, uses_anonymous_args = 0
+ 345              	.LVL29:
+ 346 0000 38B5     		push	{r3, r4, r5, lr}
+ 347              		.cfi_def_cfa_offset 16
+ 348              		.cfi_offset 3, -16
+ 349              		.cfi_offset 4, -12
+ 350              		.cfi_offset 5, -8
+ 351              		.cfi_offset 14, -4
+  53:source\asw/movementDetector.c ****     {
+ 352              		.loc 1 53 0
+ 353 0002 334B     		ldr	r3, .L48
+ 354 0004 DB78     		ldrb	r3, [r3, #3]	@ zero_extendqisi2
+ 355 0006 032B     		cmp	r3, #3
+ 356 0008 60D8     		bhi	.L38
+ 357 000a DFE803F0 		tbb	[pc, r3]
+ 358              	.L41:
+ 359 000e 02       		.byte	(.L40-.L41)/2
+ 360 000f 1E       		.byte	(.L42-.L41)/2
+ 361 0010 30       		.byte	(.L43-.L41)/2
+ 362 0011 43       		.byte	(.L44-.L41)/2
+ 363              		.p2align 1
+ 364              	.L40:
+  57:source\asw/movementDetector.c ****             {
+ 365              		.loc 1 57 0
+ 366 0012 0020     		movs	r0, #0
+ 367              	.LVL30:
+ 368 0014 FFF7FEFF 		bl	getEvent
+ 369              	.LVL31:
+ 370 0018 0028     		cmp	r0, #0
+ 371 001a 57D0     		beq	.L38
+  61:source\asw/movementDetector.c ****                 
+ 372              		.loc 1 61 0
+ 373 001c FFF7FEFF 		bl	ledIndicator_ReadyForMeasurement
+ 374              	.LVL32:
+  64:source\asw/movementDetector.c ****                                 
+ 375              		.loc 1 64 0
+ 376 0020 0020     		movs	r0, #0
+ 377 0022 FFF7FEFF 		bl	clearEvent
+ 378              	.LVL33:
+  67:source\asw/movementDetector.c ****                 
+ 379              		.loc 1 67 0
+ 380 0026 FFF7FEFF 		bl	ADC_DelSig_StartConvert
+ 381              	.LVL34:
+  70:source\asw/movementDetector.c ****                 autoFreqChang ++;
+ 382              		.loc 1 70 0
+ 383 002a 294C     		ldr	r4, .L48
+ 384 002c 2079     		ldrb	r0, [r4, #4]	@ zero_extendqisi2
+ 385 002e FFF7FEFF 		bl	MuxControlRegister_Write
+ 386              	.LVL35:
+  71:source\asw/movementDetector.c ****                 
+ 387              		.loc 1 71 0
+ 388 0032 2379     		ldrb	r3, [r4, #4]	@ zero_extendqisi2
+ 389 0034 0133     		adds	r3, r3, #1
+ 390 0036 DBB2     		uxtb	r3, r3
+ 391 0038 2371     		strb	r3, [r4, #4]
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 13
+
+
+  74:source\asw/movementDetector.c ****                 {
+ 392              		.loc 1 74 0
+ 393 003a 0A2B     		cmp	r3, #10
+ 394 003c 01D1     		bne	.L45
+  76:source\asw/movementDetector.c ****                 }
+ 395              		.loc 1 76 0
+ 396 003e 0022     		movs	r2, #0
+ 397 0040 2271     		strb	r2, [r4, #4]
+ 398              	.L45:
+  79:source\asw/movementDetector.c ****             }                    
+ 399              		.loc 1 79 0
+ 400 0042 0122     		movs	r2, #1
+ 401 0044 224B     		ldr	r3, .L48
+ 402 0046 DA70     		strb	r2, [r3, #3]
+ 403 0048 38BD     		pop	{r3, r4, r5, pc}
+ 404              	.LVL36:
+ 405              	.L42:
+  90:source\asw/movementDetector.c ****             {
+ 406              		.loc 1 90 0
+ 407 004a 0120     		movs	r0, #1
+ 408              	.LVL37:
+ 409 004c FFF7FEFF 		bl	getEvent
+ 410              	.LVL38:
+ 411 0050 0028     		cmp	r0, #0
+ 412 0052 3BD0     		beq	.L38
+  90:source\asw/movementDetector.c ****             {
+ 413              		.loc 1 90 0 is_stmt 0 discriminator 1
+ 414 0054 FFF7FEFF 		bl	UART_GetChar
+ 415              	.LVL39:
+ 416 0058 7328     		cmp	r0, #115
+ 417 005a 37D1     		bne	.L38
+  93:source\asw/movementDetector.c **** 
+ 418              		.loc 1 93 0 is_stmt 1
+ 419 005c 0120     		movs	r0, #1
+ 420 005e FFF7FEFF 		bl	clearEvent
+ 421              	.LVL40:
+  96:source\asw/movementDetector.c ****                                 
+ 422              		.loc 1 96 0
+ 423 0062 FFF7FEFF 		bl	DMA_Enable
+ 424              	.LVL41:
+  98:source\asw/movementDetector.c ****             }    
+ 425              		.loc 1 98 0
+ 426 0066 0222     		movs	r2, #2
+ 427 0068 194B     		ldr	r3, .L48
+ 428 006a DA70     		strb	r2, [r3, #3]
+ 429 006c 38BD     		pop	{r3, r4, r5, pc}
+ 430              	.LVL42:
+ 431              	.L43:
+ 432 006e 0446     		mov	r4, r0
+ 433 0070 0D46     		mov	r5, r1
+ 105:source\asw/movementDetector.c ****             {
+ 434              		.loc 1 105 0
+ 435 0072 0220     		movs	r0, #2
+ 436              	.LVL43:
+ 437 0074 FFF7FEFF 		bl	getEvent
+ 438              	.LVL44:
+ 439 0078 40B3     		cbz	r0, .L38
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 14
+
+
+ 108:source\asw/movementDetector.c ****             
+ 440              		.loc 1 108 0
+ 441 007a 0220     		movs	r0, #2
+ 442 007c FFF7FEFF 		bl	clearEvent
+ 443              	.LVL45:
+ 113:source\asw/movementDetector.c ****                 
+ 444              		.loc 1 113 0
+ 445 0080 FFF7FEFF 		bl	ledIndicator_readyToSend
+ 446              	.LVL46:
+ 116:source\asw/movementDetector.c ****             
+ 447              		.loc 1 116 0
+ 448 0084 2946     		mov	r1, r5
+ 449 0086 2046     		mov	r0, r4
+ 450 0088 FFF7FEFF 		bl	UART_PutArray
+ 451              	.LVL47:
+ 118:source\asw/movementDetector.c ****             }  
+ 452              		.loc 1 118 0
+ 453 008c 0322     		movs	r2, #3
+ 454 008e 104B     		ldr	r3, .L48
+ 455 0090 DA70     		strb	r2, [r3, #3]
+ 456 0092 38BD     		pop	{r3, r4, r5, pc}
+ 457              	.LVL48:
+ 458              	.L44:
+ 125:source\asw/movementDetector.c ****           {
+ 459              		.loc 1 125 0
+ 460 0094 0120     		movs	r0, #1
+ 461              	.LVL49:
+ 462 0096 FFF7FEFF 		bl	getEvent
+ 463              	.LVL50:
+ 464 009a 60B1     		cbz	r0, .L46
+ 125:source\asw/movementDetector.c ****           {
+ 465              		.loc 1 125 0 is_stmt 0 discriminator 1
+ 466 009c FFF7FEFF 		bl	UART_GetChar
+ 467              	.LVL51:
+ 468 00a0 6F28     		cmp	r0, #111
+ 469 00a2 08D1     		bne	.L46
+ 127:source\asw/movementDetector.c ****             state = STATE_MEASUREMENT ;
+ 470              		.loc 1 127 0 is_stmt 1
+ 471 00a4 0120     		movs	r0, #1
+ 472 00a6 FFF7FEFF 		bl	clearEvent
+ 473              	.LVL52:
+ 128:source\asw/movementDetector.c ****             counter++;
+ 474              		.loc 1 128 0
+ 475 00aa 094B     		ldr	r3, .L48
+ 476 00ac 0122     		movs	r2, #1
+ 477 00ae DA70     		strb	r2, [r3, #3]
+ 129:source\asw/movementDetector.c ****           }          
+ 478              		.loc 1 129 0
+ 479 00b0 5A79     		ldrb	r2, [r3, #5]	@ zero_extendqisi2
+ 480 00b2 0132     		adds	r2, r2, #1
+ 481 00b4 5A71     		strb	r2, [r3, #5]
+ 482              	.L46:
+ 131:source\asw/movementDetector.c ****           {
+ 483              		.loc 1 131 0
+ 484 00b6 064B     		ldr	r3, .L48
+ 485 00b8 5B79     		ldrb	r3, [r3, #5]	@ zero_extendqisi2
+ 486 00ba 0A2B     		cmp	r3, #10
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 15
+
+
+ 487 00bc 06D1     		bne	.L38
+ 133:source\asw/movementDetector.c ****             counter = 0;
+ 488              		.loc 1 133 0
+ 489 00be 044B     		ldr	r3, .L48
+ 490 00c0 0022     		movs	r2, #0
+ 491 00c2 DA70     		strb	r2, [r3, #3]
+ 134:source\asw/movementDetector.c ****             clearEvent(EV_ALL);
+ 492              		.loc 1 134 0
+ 493 00c4 5A71     		strb	r2, [r3, #5]
+ 135:source\asw/movementDetector.c ****           }
+ 494              		.loc 1 135 0
+ 495 00c6 0320     		movs	r0, #3
+ 496 00c8 FFF7FEFF 		bl	clearEvent
+ 497              	.LVL53:
+ 498              	.L38:
+ 499 00cc 38BD     		pop	{r3, r4, r5, pc}
+ 500              	.L49:
+ 501 00ce 00BF     		.align	2
+ 502              	.L48:
+ 503 00d0 00000000 		.word	.LANCHOR0
+ 504              		.cfi_endproc
+ 505              	.LFE63:
+ 506              		.size	movementDetector_StateMachine, .-movementDetector_StateMachine
+ 507              		.global	UART_RX_Flag
+ 508              		.global	dmaCompletionFlag
+ 509              		.global	buttonPressedFlag
+ 510              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 511              		.align	2
+ 512              	.LC0:
+ 513 0000 496E7661 		.ascii	"Invalid Event \000"
+ 513      6C696420 
+ 513      4576656E 
+ 513      742000
+ 514              		.bss
+ 515              		.set	.LANCHOR0,. + 0
+ 516              		.type	buttonPressedFlag, %object
+ 517              		.size	buttonPressedFlag, 1
+ 518              	buttonPressedFlag:
+ 519 0000 00       		.space	1
+ 520              		.type	dmaCompletionFlag, %object
+ 521              		.size	dmaCompletionFlag, 1
+ 522              	dmaCompletionFlag:
+ 523 0001 00       		.space	1
+ 524              		.type	UART_RX_Flag, %object
+ 525              		.size	UART_RX_Flag, 1
+ 526              	UART_RX_Flag:
+ 527 0002 00       		.space	1
+ 528              		.type	state.6309, %object
+ 529              		.size	state.6309, 1
+ 530              	state.6309:
+ 531 0003 00       		.space	1
+ 532              		.type	autoFreqChang.6310, %object
+ 533              		.size	autoFreqChang.6310, 1
+ 534              	autoFreqChang.6310:
+ 535 0004 00       		.space	1
+ 536              		.type	counter, %object
+ 537              		.size	counter, 1
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 16
+
+
+ 538              	counter:
+ 539 0005 00       		.space	1
+ 540              		.text
+ 541              	.Letext0:
+ 542              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.3\\psoc creator\\import\\gnu\\arm\\5.4.
+ 543              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.3\\psoc creator\\import\\gnu\\arm\\5.4.
+ 544              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 545              		.file 5 ".\\source\\bsw/global.h"
+ 546              		.file 6 "source\\asw\\movementDetector.h"
+ 547              		.file 7 ".\\source\\bsw/led.h"
+ 548              		.file 8 "Generated_Source\\PSoC5/core_cm3.h"
+ 549              		.file 9 "Generated_Source\\PSoC5/UART.h"
+ 550              		.file 10 "Generated_Source\\PSoC5/ADC_DelSig.h"
+ 551              		.file 11 "Generated_Source\\PSoC5/MuxControlRegister.h"
+ 552              		.file 12 ".\\source\\bsw/dma.h"
+ 553              		.section	.debug_info,"",%progbits
+ 554              	.Ldebug_info0:
+ 555 0000 57050000 		.4byte	0x557
+ 556 0004 0400     		.2byte	0x4
+ 557 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 558 000a 04       		.byte	0x4
+ 559 000b 01       		.uleb128 0x1
+ 560 000c C1030000 		.4byte	.LASF65
+ 561 0010 0C       		.byte	0xc
+ 562 0011 17030000 		.4byte	.LASF66
+ 563 0015 CF000000 		.4byte	.LASF67
+ 564 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 565 001d 00000000 		.4byte	0
+ 566 0021 00000000 		.4byte	.Ldebug_line0
+ 567 0025 02       		.uleb128 0x2
+ 568 0026 01       		.byte	0x1
+ 569 0027 06       		.byte	0x6
+ 570 0028 3F020000 		.4byte	.LASF0
+ 571 002c 03       		.uleb128 0x3
+ 572 002d DA010000 		.4byte	.LASF4
+ 573 0031 02       		.byte	0x2
+ 574 0032 1D       		.byte	0x1d
+ 575 0033 37000000 		.4byte	0x37
+ 576 0037 02       		.uleb128 0x2
+ 577 0038 01       		.byte	0x1
+ 578 0039 08       		.byte	0x8
+ 579 003a E4010000 		.4byte	.LASF1
+ 580 003e 02       		.uleb128 0x2
+ 581 003f 02       		.byte	0x2
+ 582 0040 05       		.byte	0x5
+ 583 0041 3D000000 		.4byte	.LASF2
+ 584 0045 02       		.uleb128 0x2
+ 585 0046 02       		.byte	0x2
+ 586 0047 07       		.byte	0x7
+ 587 0048 C2020000 		.4byte	.LASF3
+ 588 004c 03       		.uleb128 0x3
+ 589 004d 83030000 		.4byte	.LASF5
+ 590 0051 02       		.byte	0x2
+ 591 0052 3F       		.byte	0x3f
+ 592 0053 57000000 		.4byte	0x57
+ 593 0057 02       		.uleb128 0x2
+ 594 0058 04       		.byte	0x4
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 17
+
+
+ 595 0059 05       		.byte	0x5
+ 596 005a C1010000 		.4byte	.LASF6
+ 597 005e 02       		.uleb128 0x2
+ 598 005f 04       		.byte	0x4
+ 599 0060 07       		.byte	0x7
+ 600 0061 61030000 		.4byte	.LASF7
+ 601 0065 02       		.uleb128 0x2
+ 602 0066 08       		.byte	0x8
+ 603 0067 05       		.byte	0x5
+ 604 0068 A8010000 		.4byte	.LASF8
+ 605 006c 02       		.uleb128 0x2
+ 606 006d 08       		.byte	0x8
+ 607 006e 07       		.byte	0x7
+ 608 006f 53020000 		.4byte	.LASF9
+ 609 0073 04       		.uleb128 0x4
+ 610 0074 04       		.byte	0x4
+ 611 0075 05       		.byte	0x5
+ 612 0076 696E7400 		.ascii	"int\000"
+ 613 007a 02       		.uleb128 0x2
+ 614 007b 04       		.byte	0x4
+ 615 007c 07       		.byte	0x7
+ 616 007d 71020000 		.4byte	.LASF10
+ 617 0081 03       		.uleb128 0x3
+ 618 0082 B9000000 		.4byte	.LASF11
+ 619 0086 03       		.byte	0x3
+ 620 0087 18       		.byte	0x18
+ 621 0088 2C000000 		.4byte	0x2c
+ 622 008c 03       		.uleb128 0x3
+ 623 008d 4B020000 		.4byte	.LASF12
+ 624 0091 03       		.byte	0x3
+ 625 0092 2C       		.byte	0x2c
+ 626 0093 4C000000 		.4byte	0x4c
+ 627 0097 05       		.uleb128 0x5
+ 628 0098 C1000000 		.4byte	.LASF13
+ 629 009c 04       		.byte	0x4
+ 630 009d E401     		.2byte	0x1e4
+ 631 009f 37000000 		.4byte	0x37
+ 632 00a3 05       		.uleb128 0x5
+ 633 00a4 B2000000 		.4byte	.LASF14
+ 634 00a8 04       		.byte	0x4
+ 635 00a9 E501     		.2byte	0x1e5
+ 636 00ab 45000000 		.4byte	0x45
+ 637 00af 02       		.uleb128 0x2
+ 638 00b0 04       		.byte	0x4
+ 639 00b1 04       		.byte	0x4
+ 640 00b2 8F010000 		.4byte	.LASF15
+ 641 00b6 02       		.uleb128 0x2
+ 642 00b7 08       		.byte	0x8
+ 643 00b8 04       		.byte	0x4
+ 644 00b9 A8030000 		.4byte	.LASF16
+ 645 00bd 02       		.uleb128 0x2
+ 646 00be 01       		.byte	0x1
+ 647 00bf 08       		.byte	0x8
+ 648 00c0 F9020000 		.4byte	.LASF17
+ 649 00c4 02       		.uleb128 0x2
+ 650 00c5 08       		.byte	0x8
+ 651 00c6 04       		.byte	0x4
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 18
+
+
+ 652 00c7 77000000 		.4byte	.LASF18
+ 653 00cb 02       		.uleb128 0x2
+ 654 00cc 04       		.byte	0x4
+ 655 00cd 07       		.byte	0x7
+ 656 00ce 9F030000 		.4byte	.LASF19
+ 657 00d2 03       		.uleb128 0x3
+ 658 00d3 F2010000 		.4byte	.LASF20
+ 659 00d7 05       		.byte	0x5
+ 660 00d8 82       		.byte	0x82
+ 661 00d9 37000000 		.4byte	0x37
+ 662 00dd 06       		.uleb128 0x6
+ 663 00de 73030000 		.4byte	.LASF26
+ 664 00e2 01       		.byte	0x1
+ 665 00e3 37000000 		.4byte	0x37
+ 666 00e7 06       		.byte	0x6
+ 667 00e8 0C       		.byte	0xc
+ 668 00e9 06010000 		.4byte	0x106
+ 669 00ed 07       		.uleb128 0x7
+ 670 00ee 97040000 		.4byte	.LASF21
+ 671 00f2 00       		.byte	0
+ 672 00f3 07       		.uleb128 0x7
+ 673 00f4 EE020000 		.4byte	.LASF22
+ 674 00f8 01       		.byte	0x1
+ 675 00f9 07       		.uleb128 0x7
+ 676 00fa 4F040000 		.4byte	.LASF23
+ 677 00fe 02       		.byte	0x2
+ 678 00ff 07       		.uleb128 0x7
+ 679 0100 35030000 		.4byte	.LASF24
+ 680 0104 03       		.byte	0x3
+ 681 0105 00       		.byte	0
+ 682 0106 03       		.uleb128 0x3
+ 683 0107 CA010000 		.4byte	.LASF25
+ 684 010b 06       		.byte	0x6
+ 685 010c 11       		.byte	0x11
+ 686 010d DD000000 		.4byte	0xdd
+ 687 0111 06       		.uleb128 0x6
+ 688 0112 B7020000 		.4byte	.LASF27
+ 689 0116 01       		.byte	0x1
+ 690 0117 37000000 		.4byte	0x37
+ 691 011b 07       		.byte	0x7
+ 692 011c 12       		.byte	0x12
+ 693 011d 3A010000 		.4byte	0x13a
+ 694 0121 07       		.uleb128 0x7
+ 695 0122 D2010000 		.4byte	.LASF28
+ 696 0126 00       		.byte	0
+ 697 0127 07       		.uleb128 0x7
+ 698 0128 AC020000 		.4byte	.LASF29
+ 699 012c 01       		.byte	0x1
+ 700 012d 07       		.uleb128 0x7
+ 701 012e 3C030000 		.4byte	.LASF30
+ 702 0132 02       		.byte	0x2
+ 703 0133 07       		.uleb128 0x7
+ 704 0134 7B030000 		.4byte	.LASF31
+ 705 0138 03       		.byte	0x3
+ 706 0139 00       		.byte	0
+ 707 013a 06       		.uleb128 0x6
+ 708 013b FC010000 		.4byte	.LASF32
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 19
+
+
+ 709 013f 01       		.byte	0x1
+ 710 0140 37000000 		.4byte	0x37
+ 711 0144 07       		.byte	0x7
+ 712 0145 1A       		.byte	0x1a
+ 713 0146 57010000 		.4byte	0x157
+ 714 014a 07       		.uleb128 0x7
+ 715 014b A4020000 		.4byte	.LASF33
+ 716 014f 00       		.byte	0
+ 717 0150 07       		.uleb128 0x7
+ 718 0151 6A020000 		.4byte	.LASF34
+ 719 0155 01       		.byte	0x1
+ 720 0156 00       		.byte	0
+ 721 0157 06       		.uleb128 0x6
+ 722 0158 C7000000 		.4byte	.LASF35
+ 723 015c 01       		.byte	0x1
+ 724 015d 37000000 		.4byte	0x37
+ 725 0161 01       		.byte	0x1
+ 726 0162 22       		.byte	0x22
+ 727 0163 80010000 		.4byte	0x180
+ 728 0167 07       		.uleb128 0x7
+ 729 0168 71040000 		.4byte	.LASF36
+ 730 016c 00       		.byte	0
+ 731 016d 07       		.uleb128 0x7
+ 732 016e 8D030000 		.4byte	.LASF37
+ 733 0172 01       		.byte	0x1
+ 734 0173 07       		.uleb128 0x7
+ 735 0174 00000000 		.4byte	.LASF38
+ 736 0178 02       		.byte	0x2
+ 737 0179 07       		.uleb128 0x7
+ 738 017a 4D030000 		.4byte	.LASF39
+ 739 017e 03       		.byte	0x3
+ 740 017f 00       		.byte	0
+ 741 0180 03       		.uleb128 0x3
+ 742 0181 95010000 		.4byte	.LASF40
+ 743 0185 01       		.byte	0x1
+ 744 0186 27       		.byte	0x27
+ 745 0187 57010000 		.4byte	0x157
+ 746 018b 08       		.uleb128 0x8
+ 747 018c 6E000000 		.4byte	.LASF41
+ 748 0190 01       		.byte	0x1
+ 749 0191 94       		.byte	0x94
+ 750 0192 00000000 		.4byte	.LFB64
+ 751 0196 38000000 		.4byte	.LFE64-.LFB64
+ 752 019a 01       		.uleb128 0x1
+ 753 019b 9C       		.byte	0x9c
+ 754 019c C3010000 		.4byte	0x1c3
+ 755 01a0 09       		.uleb128 0x9
+ 756 01a1 83000000 		.4byte	.LASF43
+ 757 01a5 01       		.byte	0x1
+ 758 01a6 94       		.byte	0x94
+ 759 01a7 06010000 		.4byte	0x106
+ 760 01ab 00000000 		.4byte	.LLST0
+ 761 01af 0A       		.uleb128 0xa
+ 762 01b0 2C000000 		.4byte	.LVL2
+ 763 01b4 0D050000 		.4byte	0x50d
+ 764 01b8 0B       		.uleb128 0xb
+ 765 01b9 01       		.uleb128 0x1
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 20
+
+
+ 766 01ba 50       		.byte	0x50
+ 767 01bb 05       		.uleb128 0x5
+ 768 01bc 03       		.byte	0x3
+ 769 01bd 00000000 		.4byte	.LC0
+ 770 01c1 00       		.byte	0
+ 771 01c2 00       		.byte	0
+ 772 01c3 08       		.uleb128 0x8
+ 773 01c4 B6010000 		.4byte	.LASF42
+ 774 01c8 01       		.byte	0x1
+ 775 01c9 B6       		.byte	0xb6
+ 776 01ca 00000000 		.4byte	.LFB65
+ 777 01ce 44000000 		.4byte	.LFE65-.LFB65
+ 778 01d2 01       		.uleb128 0x1
+ 779 01d3 9C       		.byte	0x9c
+ 780 01d4 FB010000 		.4byte	0x1fb
+ 781 01d8 09       		.uleb128 0x9
+ 782 01d9 83000000 		.4byte	.LASF43
+ 783 01dd 01       		.byte	0x1
+ 784 01de B6       		.byte	0xb6
+ 785 01df 06010000 		.4byte	0x106
+ 786 01e3 21000000 		.4byte	.LLST1
+ 787 01e7 0A       		.uleb128 0xa
+ 788 01e8 38000000 		.4byte	.LVL5
+ 789 01ec 0D050000 		.4byte	0x50d
+ 790 01f0 0B       		.uleb128 0xb
+ 791 01f1 01       		.uleb128 0x1
+ 792 01f2 50       		.byte	0x50
+ 793 01f3 05       		.uleb128 0x5
+ 794 01f4 03       		.byte	0x3
+ 795 01f5 00000000 		.4byte	.LC0
+ 796 01f9 00       		.byte	0
+ 797 01fa 00       		.byte	0
+ 798 01fb 0C       		.uleb128 0xc
+ 799 01fc 8E040000 		.4byte	.LASF68
+ 800 0200 01       		.byte	0x1
+ 801 0201 DD       		.byte	0xdd
+ 802 0202 D2000000 		.4byte	0xd2
+ 803 0206 00000000 		.4byte	.LFB66
+ 804 020a 38000000 		.4byte	.LFE66-.LFB66
+ 805 020e 01       		.uleb128 0x1
+ 806 020f 9C       		.byte	0x9c
+ 807 0210 46020000 		.4byte	0x246
+ 808 0214 09       		.uleb128 0x9
+ 809 0215 83000000 		.4byte	.LASF43
+ 810 0219 01       		.byte	0x1
+ 811 021a DD       		.byte	0xdd
+ 812 021b 06010000 		.4byte	0x106
+ 813 021f 42000000 		.4byte	.LLST2
+ 814 0223 0D       		.uleb128 0xd
+ 815 0224 AF030000 		.4byte	.LASF50
+ 816 0228 01       		.byte	0x1
+ 817 0229 DF       		.byte	0xdf
+ 818 022a D2000000 		.4byte	0xd2
+ 819 022e AE000000 		.4byte	.LLST3
+ 820 0232 0A       		.uleb128 0xa
+ 821 0233 2C000000 		.4byte	.LVL18
+ 822 0237 0D050000 		.4byte	0x50d
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 21
+
+
+ 823 023b 0B       		.uleb128 0xb
+ 824 023c 01       		.uleb128 0x1
+ 825 023d 50       		.byte	0x50
+ 826 023e 05       		.uleb128 0x5
+ 827 023f 03       		.byte	0x3
+ 828 0240 00000000 		.4byte	.LC0
+ 829 0244 00       		.byte	0
+ 830 0245 00       		.byte	0
+ 831 0246 0E       		.uleb128 0xe
+ 832 0247 FE020000 		.4byte	.LASF44
+ 833 024b 01       		.byte	0x1
+ 834 024c 0001     		.2byte	0x100
+ 835 024e 00000000 		.4byte	.LFB67
+ 836 0252 1C000000 		.4byte	.LFE67-.LFB67
+ 837 0256 01       		.uleb128 0x1
+ 838 0257 9C       		.byte	0x9c
+ 839 0258 A1020000 		.4byte	0x2a1
+ 840 025c 0F       		.uleb128 0xf
+ 841 025d 0A000000 		.4byte	.LVL20
+ 842 0261 18050000 		.4byte	0x518
+ 843 0265 74020000 		.4byte	0x274
+ 844 0269 0B       		.uleb128 0xb
+ 845 026a 01       		.uleb128 0x1
+ 846 026b 50       		.byte	0x50
+ 847 026c 01       		.uleb128 0x1
+ 848 026d 32       		.byte	0x32
+ 849 026e 0B       		.uleb128 0xb
+ 850 026f 01       		.uleb128 0x1
+ 851 0270 51       		.byte	0x51
+ 852 0271 01       		.uleb128 0x1
+ 853 0272 30       		.byte	0x30
+ 854 0273 00       		.byte	0
+ 855 0274 0F       		.uleb128 0xf
+ 856 0275 12000000 		.4byte	.LVL21
+ 857 0279 18050000 		.4byte	0x518
+ 858 027d 8C020000 		.4byte	0x28c
+ 859 0281 0B       		.uleb128 0xb
+ 860 0282 01       		.uleb128 0x1
+ 861 0283 50       		.byte	0x50
+ 862 0284 01       		.uleb128 0x1
+ 863 0285 30       		.byte	0x30
+ 864 0286 0B       		.uleb128 0xb
+ 865 0287 01       		.uleb128 0x1
+ 866 0288 51       		.byte	0x51
+ 867 0289 01       		.uleb128 0x1
+ 868 028a 31       		.byte	0x31
+ 869 028b 00       		.byte	0
+ 870 028c 0A       		.uleb128 0xa
+ 871 028d 1A000000 		.4byte	.LVL22
+ 872 0291 18050000 		.4byte	0x518
+ 873 0295 0B       		.uleb128 0xb
+ 874 0296 01       		.uleb128 0x1
+ 875 0297 50       		.byte	0x50
+ 876 0298 01       		.uleb128 0x1
+ 877 0299 31       		.byte	0x31
+ 878 029a 0B       		.uleb128 0xb
+ 879 029b 01       		.uleb128 0x1
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 22
+
+
+ 880 029c 51       		.byte	0x51
+ 881 029d 01       		.uleb128 0x1
+ 882 029e 30       		.byte	0x30
+ 883 029f 00       		.byte	0
+ 884 02a0 00       		.byte	0
+ 885 02a1 0E       		.uleb128 0xe
+ 886 02a2 08020000 		.4byte	.LASF45
+ 887 02a6 01       		.byte	0x1
+ 888 02a7 0C01     		.2byte	0x10c
+ 889 02a9 00000000 		.4byte	.LFB68
+ 890 02ad 1C000000 		.4byte	.LFE68-.LFB68
+ 891 02b1 01       		.uleb128 0x1
+ 892 02b2 9C       		.byte	0x9c
+ 893 02b3 FC020000 		.4byte	0x2fc
+ 894 02b7 0F       		.uleb128 0xf
+ 895 02b8 0A000000 		.4byte	.LVL23
+ 896 02bc 18050000 		.4byte	0x518
+ 897 02c0 CF020000 		.4byte	0x2cf
+ 898 02c4 0B       		.uleb128 0xb
+ 899 02c5 01       		.uleb128 0x1
+ 900 02c6 50       		.byte	0x50
+ 901 02c7 01       		.uleb128 0x1
+ 902 02c8 32       		.byte	0x32
+ 903 02c9 0B       		.uleb128 0xb
+ 904 02ca 01       		.uleb128 0x1
+ 905 02cb 51       		.byte	0x51
+ 906 02cc 01       		.uleb128 0x1
+ 907 02cd 30       		.byte	0x30
+ 908 02ce 00       		.byte	0
+ 909 02cf 0F       		.uleb128 0xf
+ 910 02d0 12000000 		.4byte	.LVL24
+ 911 02d4 18050000 		.4byte	0x518
+ 912 02d8 E7020000 		.4byte	0x2e7
+ 913 02dc 0B       		.uleb128 0xb
+ 914 02dd 01       		.uleb128 0x1
+ 915 02de 50       		.byte	0x50
+ 916 02df 01       		.uleb128 0x1
+ 917 02e0 30       		.byte	0x30
+ 918 02e1 0B       		.uleb128 0xb
+ 919 02e2 01       		.uleb128 0x1
+ 920 02e3 51       		.byte	0x51
+ 921 02e4 01       		.uleb128 0x1
+ 922 02e5 30       		.byte	0x30
+ 923 02e6 00       		.byte	0
+ 924 02e7 0A       		.uleb128 0xa
+ 925 02e8 1A000000 		.4byte	.LVL25
+ 926 02ec 18050000 		.4byte	0x518
+ 927 02f0 0B       		.uleb128 0xb
+ 928 02f1 01       		.uleb128 0x1
+ 929 02f2 50       		.byte	0x50
+ 930 02f3 01       		.uleb128 0x1
+ 931 02f4 31       		.byte	0x31
+ 932 02f5 0B       		.uleb128 0xb
+ 933 02f6 01       		.uleb128 0x1
+ 934 02f7 51       		.byte	0x51
+ 935 02f8 01       		.uleb128 0x1
+ 936 02f9 31       		.byte	0x31
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 23
+
+
+ 937 02fa 00       		.byte	0
+ 938 02fb 00       		.byte	0
+ 939 02fc 0E       		.uleb128 0xe
+ 940 02fd 47000000 		.4byte	.LASF46
+ 941 0301 01       		.byte	0x1
+ 942 0302 1801     		.2byte	0x118
+ 943 0304 00000000 		.4byte	.LFB69
+ 944 0308 1C000000 		.4byte	.LFE69-.LFB69
+ 945 030c 01       		.uleb128 0x1
+ 946 030d 9C       		.byte	0x9c
+ 947 030e 57030000 		.4byte	0x357
+ 948 0312 0F       		.uleb128 0xf
+ 949 0313 0A000000 		.4byte	.LVL26
+ 950 0317 18050000 		.4byte	0x518
+ 951 031b 2A030000 		.4byte	0x32a
+ 952 031f 0B       		.uleb128 0xb
+ 953 0320 01       		.uleb128 0x1
+ 954 0321 50       		.byte	0x50
+ 955 0322 01       		.uleb128 0x1
+ 956 0323 32       		.byte	0x32
+ 957 0324 0B       		.uleb128 0xb
+ 958 0325 01       		.uleb128 0x1
+ 959 0326 51       		.byte	0x51
+ 960 0327 01       		.uleb128 0x1
+ 961 0328 31       		.byte	0x31
+ 962 0329 00       		.byte	0
+ 963 032a 0F       		.uleb128 0xf
+ 964 032b 12000000 		.4byte	.LVL27
+ 965 032f 18050000 		.4byte	0x518
+ 966 0333 42030000 		.4byte	0x342
+ 967 0337 0B       		.uleb128 0xb
+ 968 0338 01       		.uleb128 0x1
+ 969 0339 50       		.byte	0x50
+ 970 033a 01       		.uleb128 0x1
+ 971 033b 30       		.byte	0x30
+ 972 033c 0B       		.uleb128 0xb
+ 973 033d 01       		.uleb128 0x1
+ 974 033e 51       		.byte	0x51
+ 975 033f 01       		.uleb128 0x1
+ 976 0340 30       		.byte	0x30
+ 977 0341 00       		.byte	0
+ 978 0342 0A       		.uleb128 0xa
+ 979 0343 1A000000 		.4byte	.LVL28
+ 980 0347 18050000 		.4byte	0x518
+ 981 034b 0B       		.uleb128 0xb
+ 982 034c 01       		.uleb128 0x1
+ 983 034d 50       		.byte	0x50
+ 984 034e 01       		.uleb128 0x1
+ 985 034f 31       		.byte	0x31
+ 986 0350 0B       		.uleb128 0xb
+ 987 0351 01       		.uleb128 0x1
+ 988 0352 51       		.byte	0x51
+ 989 0353 01       		.uleb128 0x1
+ 990 0354 30       		.byte	0x30
+ 991 0355 00       		.byte	0
+ 992 0356 00       		.byte	0
+ 993 0357 08       		.uleb128 0x8
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 24
+
+
+ 994 0358 7E020000 		.4byte	.LASF47
+ 995 035c 01       		.byte	0x1
+ 996 035d 2F       		.byte	0x2f
+ 997 035e 00000000 		.4byte	.LFB63
+ 998 0362 D4000000 		.4byte	.LFE63-.LFB63
+ 999 0366 01       		.uleb128 0x1
+ 1000 0367 9C       		.byte	0x9c
+ 1001 0368 AD040000 		.4byte	0x4ad
+ 1002 036c 09       		.uleb128 0x9
+ 1003 036d 46030000 		.4byte	.LASF48
+ 1004 0371 01       		.byte	0x1
+ 1005 0372 2F       		.byte	0x2f
+ 1006 0373 AD040000 		.4byte	0x4ad
+ 1007 0377 12010000 		.4byte	.LLST4
+ 1008 037b 09       		.uleb128 0x9
+ 1009 037c 88010000 		.4byte	.LASF49
+ 1010 0380 01       		.byte	0x1
+ 1011 0381 2F       		.byte	0x2f
+ 1012 0382 A3000000 		.4byte	0xa3
+ 1013 0386 7B010000 		.4byte	.LLST5
+ 1014 038a 10       		.uleb128 0x10
+ 1015 038b 37000000 		.4byte	.LASF51
+ 1016 038f 01       		.byte	0x1
+ 1017 0390 32       		.byte	0x32
+ 1018 0391 80010000 		.4byte	0x180
+ 1019 0395 05       		.uleb128 0x5
+ 1020 0396 03       		.byte	0x3
+ 1021 0397 03000000 		.4byte	state.6309
+ 1022 039b 10       		.uleb128 0x10
+ 1023 039c 60000000 		.4byte	.LASF52
+ 1024 03a0 01       		.byte	0x1
+ 1025 03a1 33       		.byte	0x33
+ 1026 03a2 81000000 		.4byte	0x81
+ 1027 03a6 05       		.uleb128 0x5
+ 1028 03a7 03       		.byte	0x3
+ 1029 03a8 04000000 		.4byte	autoFreqChang.6310
+ 1030 03ac 0F       		.uleb128 0xf
+ 1031 03ad 18000000 		.4byte	.LVL31
+ 1032 03b1 FB010000 		.4byte	0x1fb
+ 1033 03b5 BF030000 		.4byte	0x3bf
+ 1034 03b9 0B       		.uleb128 0xb
+ 1035 03ba 01       		.uleb128 0x1
+ 1036 03bb 50       		.byte	0x50
+ 1037 03bc 01       		.uleb128 0x1
+ 1038 03bd 30       		.byte	0x30
+ 1039 03be 00       		.byte	0
+ 1040 03bf 11       		.uleb128 0x11
+ 1041 03c0 20000000 		.4byte	.LVL32
+ 1042 03c4 A1020000 		.4byte	0x2a1
+ 1043 03c8 0F       		.uleb128 0xf
+ 1044 03c9 26000000 		.4byte	.LVL33
+ 1045 03cd C3010000 		.4byte	0x1c3
+ 1046 03d1 DB030000 		.4byte	0x3db
+ 1047 03d5 0B       		.uleb128 0xb
+ 1048 03d6 01       		.uleb128 0x1
+ 1049 03d7 50       		.byte	0x50
+ 1050 03d8 01       		.uleb128 0x1
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 25
+
+
+ 1051 03d9 30       		.byte	0x30
+ 1052 03da 00       		.byte	0
+ 1053 03db 11       		.uleb128 0x11
+ 1054 03dc 2A000000 		.4byte	.LVL34
+ 1055 03e0 23050000 		.4byte	0x523
+ 1056 03e4 11       		.uleb128 0x11
+ 1057 03e5 32000000 		.4byte	.LVL35
+ 1058 03e9 2E050000 		.4byte	0x52e
+ 1059 03ed 0F       		.uleb128 0xf
+ 1060 03ee 50000000 		.4byte	.LVL38
+ 1061 03f2 FB010000 		.4byte	0x1fb
+ 1062 03f6 00040000 		.4byte	0x400
+ 1063 03fa 0B       		.uleb128 0xb
+ 1064 03fb 01       		.uleb128 0x1
+ 1065 03fc 50       		.byte	0x50
+ 1066 03fd 01       		.uleb128 0x1
+ 1067 03fe 31       		.byte	0x31
+ 1068 03ff 00       		.byte	0
+ 1069 0400 11       		.uleb128 0x11
+ 1070 0401 58000000 		.4byte	.LVL39
+ 1071 0405 39050000 		.4byte	0x539
+ 1072 0409 0F       		.uleb128 0xf
+ 1073 040a 62000000 		.4byte	.LVL40
+ 1074 040e C3010000 		.4byte	0x1c3
+ 1075 0412 1C040000 		.4byte	0x41c
+ 1076 0416 0B       		.uleb128 0xb
+ 1077 0417 01       		.uleb128 0x1
+ 1078 0418 50       		.byte	0x50
+ 1079 0419 01       		.uleb128 0x1
+ 1080 041a 31       		.byte	0x31
+ 1081 041b 00       		.byte	0
+ 1082 041c 11       		.uleb128 0x11
+ 1083 041d 66000000 		.4byte	.LVL41
+ 1084 0421 44050000 		.4byte	0x544
+ 1085 0425 0F       		.uleb128 0xf
+ 1086 0426 78000000 		.4byte	.LVL44
+ 1087 042a FB010000 		.4byte	0x1fb
+ 1088 042e 38040000 		.4byte	0x438
+ 1089 0432 0B       		.uleb128 0xb
+ 1090 0433 01       		.uleb128 0x1
+ 1091 0434 50       		.byte	0x50
+ 1092 0435 01       		.uleb128 0x1
+ 1093 0436 32       		.byte	0x32
+ 1094 0437 00       		.byte	0
+ 1095 0438 0F       		.uleb128 0xf
+ 1096 0439 80000000 		.4byte	.LVL45
+ 1097 043d C3010000 		.4byte	0x1c3
+ 1098 0441 4B040000 		.4byte	0x44b
+ 1099 0445 0B       		.uleb128 0xb
+ 1100 0446 01       		.uleb128 0x1
+ 1101 0447 50       		.byte	0x50
+ 1102 0448 01       		.uleb128 0x1
+ 1103 0449 32       		.byte	0x32
+ 1104 044a 00       		.byte	0
+ 1105 044b 11       		.uleb128 0x11
+ 1106 044c 84000000 		.4byte	.LVL46
+ 1107 0450 FC020000 		.4byte	0x2fc
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 26
+
+
+ 1108 0454 0F       		.uleb128 0xf
+ 1109 0455 8C000000 		.4byte	.LVL47
+ 1110 0459 4F050000 		.4byte	0x54f
+ 1111 045d 6E040000 		.4byte	0x46e
+ 1112 0461 0B       		.uleb128 0xb
+ 1113 0462 01       		.uleb128 0x1
+ 1114 0463 50       		.byte	0x50
+ 1115 0464 02       		.uleb128 0x2
+ 1116 0465 74       		.byte	0x74
+ 1117 0466 00       		.sleb128 0
+ 1118 0467 0B       		.uleb128 0xb
+ 1119 0468 01       		.uleb128 0x1
+ 1120 0469 51       		.byte	0x51
+ 1121 046a 02       		.uleb128 0x2
+ 1122 046b 75       		.byte	0x75
+ 1123 046c 00       		.sleb128 0
+ 1124 046d 00       		.byte	0
+ 1125 046e 0F       		.uleb128 0xf
+ 1126 046f 9A000000 		.4byte	.LVL50
+ 1127 0473 FB010000 		.4byte	0x1fb
+ 1128 0477 81040000 		.4byte	0x481
+ 1129 047b 0B       		.uleb128 0xb
+ 1130 047c 01       		.uleb128 0x1
+ 1131 047d 50       		.byte	0x50
+ 1132 047e 01       		.uleb128 0x1
+ 1133 047f 31       		.byte	0x31
+ 1134 0480 00       		.byte	0
+ 1135 0481 11       		.uleb128 0x11
+ 1136 0482 A0000000 		.4byte	.LVL51
+ 1137 0486 39050000 		.4byte	0x539
+ 1138 048a 0F       		.uleb128 0xf
+ 1139 048b AA000000 		.4byte	.LVL52
+ 1140 048f C3010000 		.4byte	0x1c3
+ 1141 0493 9D040000 		.4byte	0x49d
+ 1142 0497 0B       		.uleb128 0xb
+ 1143 0498 01       		.uleb128 0x1
+ 1144 0499 50       		.byte	0x50
+ 1145 049a 01       		.uleb128 0x1
+ 1146 049b 31       		.byte	0x31
+ 1147 049c 00       		.byte	0
+ 1148 049d 0A       		.uleb128 0xa
+ 1149 049e CC000000 		.4byte	.LVL53
+ 1150 04a2 C3010000 		.4byte	0x1c3
+ 1151 04a6 0B       		.uleb128 0xb
+ 1152 04a7 01       		.uleb128 0x1
+ 1153 04a8 50       		.byte	0x50
+ 1154 04a9 01       		.uleb128 0x1
+ 1155 04aa 33       		.byte	0x33
+ 1156 04ab 00       		.byte	0
+ 1157 04ac 00       		.byte	0
+ 1158 04ad 12       		.uleb128 0x12
+ 1159 04ae 04       		.byte	0x4
+ 1160 04af A3000000 		.4byte	0xa3
+ 1161 04b3 10       		.uleb128 0x10
+ 1162 04b4 37020000 		.4byte	.LASF53
+ 1163 04b8 01       		.byte	0x1
+ 1164 04b9 13       		.byte	0x13
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 27
+
+
+ 1165 04ba 81000000 		.4byte	0x81
+ 1166 04be 05       		.uleb128 0x5
+ 1167 04bf 03       		.byte	0x3
+ 1168 04c0 05000000 		.4byte	counter
+ 1169 04c4 13       		.uleb128 0x13
+ 1170 04c5 B4030000 		.4byte	.LASF54
+ 1171 04c9 08       		.byte	0x8
+ 1172 04ca 1207     		.2byte	0x712
+ 1173 04cc D0040000 		.4byte	0x4d0
+ 1174 04d0 14       		.uleb128 0x14
+ 1175 04d1 8C000000 		.4byte	0x8c
+ 1176 04d5 15       		.uleb128 0x15
+ 1177 04d6 7C040000 		.4byte	.LASF55
+ 1178 04da 01       		.byte	0x1
+ 1179 04db 17       		.byte	0x17
+ 1180 04dc E6040000 		.4byte	0x4e6
+ 1181 04e0 05       		.uleb128 0x5
+ 1182 04e1 03       		.byte	0x3
+ 1183 04e2 00000000 		.4byte	buttonPressedFlag
+ 1184 04e6 14       		.uleb128 0x14
+ 1185 04e7 D2000000 		.4byte	0xd2
+ 1186 04eb 15       		.uleb128 0x15
+ 1187 04ec 5F040000 		.4byte	.LASF56
+ 1188 04f0 01       		.byte	0x1
+ 1189 04f1 1B       		.byte	0x1b
+ 1190 04f2 E6040000 		.4byte	0x4e6
+ 1191 04f6 05       		.uleb128 0x5
+ 1192 04f7 03       		.byte	0x3
+ 1193 04f8 00000000 		.4byte	dmaCompletionFlag
+ 1194 04fc 15       		.uleb128 0x15
+ 1195 04fd 89000000 		.4byte	.LASF57
+ 1196 0501 01       		.byte	0x1
+ 1197 0502 1F       		.byte	0x1f
+ 1198 0503 E6040000 		.4byte	0x4e6
+ 1199 0507 05       		.uleb128 0x5
+ 1200 0508 03       		.byte	0x3
+ 1201 0509 00000000 		.4byte	UART_RX_Flag
+ 1202 050d 16       		.uleb128 0x16
+ 1203 050e A3000000 		.4byte	.LASF58
+ 1204 0512 A3000000 		.4byte	.LASF58
+ 1205 0516 09       		.byte	0x9
+ 1206 0517 8B       		.byte	0x8b
+ 1207 0518 16       		.uleb128 0x16
+ 1208 0519 9C020000 		.4byte	.LASF59
+ 1209 051d 9C020000 		.4byte	.LASF59
+ 1210 0521 07       		.byte	0x7
+ 1211 0522 2B       		.byte	0x2b
+ 1212 0523 16       		.uleb128 0x16
+ 1213 0524 1F000000 		.4byte	.LASF60
+ 1214 0528 1F000000 		.4byte	.LASF60
+ 1215 052c 0A       		.byte	0xa
+ 1216 052d 3D       		.byte	0x3d
+ 1217 052e 16       		.uleb128 0x16
+ 1218 052f D5020000 		.4byte	.LASF61
+ 1219 0533 D5020000 		.4byte	.LASF61
+ 1220 0537 0B       		.byte	0xb
+ 1221 0538 2F       		.byte	0x2f
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 28
+
+
+ 1222 0539 16       		.uleb128 0x16
+ 1223 053a 96000000 		.4byte	.LASF62
+ 1224 053e 96000000 		.4byte	.LASF62
+ 1225 0542 09       		.byte	0x9
+ 1226 0543 71       		.byte	0x71
+ 1227 0544 16       		.uleb128 0x16
+ 1228 0545 9D010000 		.4byte	.LASF63
+ 1229 0549 9D010000 		.4byte	.LASF63
+ 1230 054d 0C       		.byte	0xc
+ 1231 054e 18       		.byte	0x18
+ 1232 054f 16       		.uleb128 0x16
+ 1233 0550 29020000 		.4byte	.LASF64
+ 1234 0554 29020000 		.4byte	.LASF64
+ 1235 0558 09       		.byte	0x9
+ 1236 0559 8C       		.byte	0x8c
+ 1237 055a 00       		.byte	0
+ 1238              		.section	.debug_abbrev,"",%progbits
+ 1239              	.Ldebug_abbrev0:
+ 1240 0000 01       		.uleb128 0x1
+ 1241 0001 11       		.uleb128 0x11
+ 1242 0002 01       		.byte	0x1
+ 1243 0003 25       		.uleb128 0x25
+ 1244 0004 0E       		.uleb128 0xe
+ 1245 0005 13       		.uleb128 0x13
+ 1246 0006 0B       		.uleb128 0xb
+ 1247 0007 03       		.uleb128 0x3
+ 1248 0008 0E       		.uleb128 0xe
+ 1249 0009 1B       		.uleb128 0x1b
+ 1250 000a 0E       		.uleb128 0xe
+ 1251 000b 55       		.uleb128 0x55
+ 1252 000c 17       		.uleb128 0x17
+ 1253 000d 11       		.uleb128 0x11
+ 1254 000e 01       		.uleb128 0x1
+ 1255 000f 10       		.uleb128 0x10
+ 1256 0010 17       		.uleb128 0x17
+ 1257 0011 00       		.byte	0
+ 1258 0012 00       		.byte	0
+ 1259 0013 02       		.uleb128 0x2
+ 1260 0014 24       		.uleb128 0x24
+ 1261 0015 00       		.byte	0
+ 1262 0016 0B       		.uleb128 0xb
+ 1263 0017 0B       		.uleb128 0xb
+ 1264 0018 3E       		.uleb128 0x3e
+ 1265 0019 0B       		.uleb128 0xb
+ 1266 001a 03       		.uleb128 0x3
+ 1267 001b 0E       		.uleb128 0xe
+ 1268 001c 00       		.byte	0
+ 1269 001d 00       		.byte	0
+ 1270 001e 03       		.uleb128 0x3
+ 1271 001f 16       		.uleb128 0x16
+ 1272 0020 00       		.byte	0
+ 1273 0021 03       		.uleb128 0x3
+ 1274 0022 0E       		.uleb128 0xe
+ 1275 0023 3A       		.uleb128 0x3a
+ 1276 0024 0B       		.uleb128 0xb
+ 1277 0025 3B       		.uleb128 0x3b
+ 1278 0026 0B       		.uleb128 0xb
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 29
+
+
+ 1279 0027 49       		.uleb128 0x49
+ 1280 0028 13       		.uleb128 0x13
+ 1281 0029 00       		.byte	0
+ 1282 002a 00       		.byte	0
+ 1283 002b 04       		.uleb128 0x4
+ 1284 002c 24       		.uleb128 0x24
+ 1285 002d 00       		.byte	0
+ 1286 002e 0B       		.uleb128 0xb
+ 1287 002f 0B       		.uleb128 0xb
+ 1288 0030 3E       		.uleb128 0x3e
+ 1289 0031 0B       		.uleb128 0xb
+ 1290 0032 03       		.uleb128 0x3
+ 1291 0033 08       		.uleb128 0x8
+ 1292 0034 00       		.byte	0
+ 1293 0035 00       		.byte	0
+ 1294 0036 05       		.uleb128 0x5
+ 1295 0037 16       		.uleb128 0x16
+ 1296 0038 00       		.byte	0
+ 1297 0039 03       		.uleb128 0x3
+ 1298 003a 0E       		.uleb128 0xe
+ 1299 003b 3A       		.uleb128 0x3a
+ 1300 003c 0B       		.uleb128 0xb
+ 1301 003d 3B       		.uleb128 0x3b
+ 1302 003e 05       		.uleb128 0x5
+ 1303 003f 49       		.uleb128 0x49
+ 1304 0040 13       		.uleb128 0x13
+ 1305 0041 00       		.byte	0
+ 1306 0042 00       		.byte	0
+ 1307 0043 06       		.uleb128 0x6
+ 1308 0044 04       		.uleb128 0x4
+ 1309 0045 01       		.byte	0x1
+ 1310 0046 03       		.uleb128 0x3
+ 1311 0047 0E       		.uleb128 0xe
+ 1312 0048 0B       		.uleb128 0xb
+ 1313 0049 0B       		.uleb128 0xb
+ 1314 004a 49       		.uleb128 0x49
+ 1315 004b 13       		.uleb128 0x13
+ 1316 004c 3A       		.uleb128 0x3a
+ 1317 004d 0B       		.uleb128 0xb
+ 1318 004e 3B       		.uleb128 0x3b
+ 1319 004f 0B       		.uleb128 0xb
+ 1320 0050 01       		.uleb128 0x1
+ 1321 0051 13       		.uleb128 0x13
+ 1322 0052 00       		.byte	0
+ 1323 0053 00       		.byte	0
+ 1324 0054 07       		.uleb128 0x7
+ 1325 0055 28       		.uleb128 0x28
+ 1326 0056 00       		.byte	0
+ 1327 0057 03       		.uleb128 0x3
+ 1328 0058 0E       		.uleb128 0xe
+ 1329 0059 1C       		.uleb128 0x1c
+ 1330 005a 0B       		.uleb128 0xb
+ 1331 005b 00       		.byte	0
+ 1332 005c 00       		.byte	0
+ 1333 005d 08       		.uleb128 0x8
+ 1334 005e 2E       		.uleb128 0x2e
+ 1335 005f 01       		.byte	0x1
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 30
+
+
+ 1336 0060 3F       		.uleb128 0x3f
+ 1337 0061 19       		.uleb128 0x19
+ 1338 0062 03       		.uleb128 0x3
+ 1339 0063 0E       		.uleb128 0xe
+ 1340 0064 3A       		.uleb128 0x3a
+ 1341 0065 0B       		.uleb128 0xb
+ 1342 0066 3B       		.uleb128 0x3b
+ 1343 0067 0B       		.uleb128 0xb
+ 1344 0068 27       		.uleb128 0x27
+ 1345 0069 19       		.uleb128 0x19
+ 1346 006a 11       		.uleb128 0x11
+ 1347 006b 01       		.uleb128 0x1
+ 1348 006c 12       		.uleb128 0x12
+ 1349 006d 06       		.uleb128 0x6
+ 1350 006e 40       		.uleb128 0x40
+ 1351 006f 18       		.uleb128 0x18
+ 1352 0070 9742     		.uleb128 0x2117
+ 1353 0072 19       		.uleb128 0x19
+ 1354 0073 01       		.uleb128 0x1
+ 1355 0074 13       		.uleb128 0x13
+ 1356 0075 00       		.byte	0
+ 1357 0076 00       		.byte	0
+ 1358 0077 09       		.uleb128 0x9
+ 1359 0078 05       		.uleb128 0x5
+ 1360 0079 00       		.byte	0
+ 1361 007a 03       		.uleb128 0x3
+ 1362 007b 0E       		.uleb128 0xe
+ 1363 007c 3A       		.uleb128 0x3a
+ 1364 007d 0B       		.uleb128 0xb
+ 1365 007e 3B       		.uleb128 0x3b
+ 1366 007f 0B       		.uleb128 0xb
+ 1367 0080 49       		.uleb128 0x49
+ 1368 0081 13       		.uleb128 0x13
+ 1369 0082 02       		.uleb128 0x2
+ 1370 0083 17       		.uleb128 0x17
+ 1371 0084 00       		.byte	0
+ 1372 0085 00       		.byte	0
+ 1373 0086 0A       		.uleb128 0xa
+ 1374 0087 898201   		.uleb128 0x4109
+ 1375 008a 01       		.byte	0x1
+ 1376 008b 11       		.uleb128 0x11
+ 1377 008c 01       		.uleb128 0x1
+ 1378 008d 31       		.uleb128 0x31
+ 1379 008e 13       		.uleb128 0x13
+ 1380 008f 00       		.byte	0
+ 1381 0090 00       		.byte	0
+ 1382 0091 0B       		.uleb128 0xb
+ 1383 0092 8A8201   		.uleb128 0x410a
+ 1384 0095 00       		.byte	0
+ 1385 0096 02       		.uleb128 0x2
+ 1386 0097 18       		.uleb128 0x18
+ 1387 0098 9142     		.uleb128 0x2111
+ 1388 009a 18       		.uleb128 0x18
+ 1389 009b 00       		.byte	0
+ 1390 009c 00       		.byte	0
+ 1391 009d 0C       		.uleb128 0xc
+ 1392 009e 2E       		.uleb128 0x2e
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 31
+
+
+ 1393 009f 01       		.byte	0x1
+ 1394 00a0 3F       		.uleb128 0x3f
+ 1395 00a1 19       		.uleb128 0x19
+ 1396 00a2 03       		.uleb128 0x3
+ 1397 00a3 0E       		.uleb128 0xe
+ 1398 00a4 3A       		.uleb128 0x3a
+ 1399 00a5 0B       		.uleb128 0xb
+ 1400 00a6 3B       		.uleb128 0x3b
+ 1401 00a7 0B       		.uleb128 0xb
+ 1402 00a8 27       		.uleb128 0x27
+ 1403 00a9 19       		.uleb128 0x19
+ 1404 00aa 49       		.uleb128 0x49
+ 1405 00ab 13       		.uleb128 0x13
+ 1406 00ac 11       		.uleb128 0x11
+ 1407 00ad 01       		.uleb128 0x1
+ 1408 00ae 12       		.uleb128 0x12
+ 1409 00af 06       		.uleb128 0x6
+ 1410 00b0 40       		.uleb128 0x40
+ 1411 00b1 18       		.uleb128 0x18
+ 1412 00b2 9742     		.uleb128 0x2117
+ 1413 00b4 19       		.uleb128 0x19
+ 1414 00b5 01       		.uleb128 0x1
+ 1415 00b6 13       		.uleb128 0x13
+ 1416 00b7 00       		.byte	0
+ 1417 00b8 00       		.byte	0
+ 1418 00b9 0D       		.uleb128 0xd
+ 1419 00ba 34       		.uleb128 0x34
+ 1420 00bb 00       		.byte	0
+ 1421 00bc 03       		.uleb128 0x3
+ 1422 00bd 0E       		.uleb128 0xe
+ 1423 00be 3A       		.uleb128 0x3a
+ 1424 00bf 0B       		.uleb128 0xb
+ 1425 00c0 3B       		.uleb128 0x3b
+ 1426 00c1 0B       		.uleb128 0xb
+ 1427 00c2 49       		.uleb128 0x49
+ 1428 00c3 13       		.uleb128 0x13
+ 1429 00c4 02       		.uleb128 0x2
+ 1430 00c5 17       		.uleb128 0x17
+ 1431 00c6 00       		.byte	0
+ 1432 00c7 00       		.byte	0
+ 1433 00c8 0E       		.uleb128 0xe
+ 1434 00c9 2E       		.uleb128 0x2e
+ 1435 00ca 01       		.byte	0x1
+ 1436 00cb 3F       		.uleb128 0x3f
+ 1437 00cc 19       		.uleb128 0x19
+ 1438 00cd 03       		.uleb128 0x3
+ 1439 00ce 0E       		.uleb128 0xe
+ 1440 00cf 3A       		.uleb128 0x3a
+ 1441 00d0 0B       		.uleb128 0xb
+ 1442 00d1 3B       		.uleb128 0x3b
+ 1443 00d2 05       		.uleb128 0x5
+ 1444 00d3 11       		.uleb128 0x11
+ 1445 00d4 01       		.uleb128 0x1
+ 1446 00d5 12       		.uleb128 0x12
+ 1447 00d6 06       		.uleb128 0x6
+ 1448 00d7 40       		.uleb128 0x40
+ 1449 00d8 18       		.uleb128 0x18
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 32
+
+
+ 1450 00d9 9742     		.uleb128 0x2117
+ 1451 00db 19       		.uleb128 0x19
+ 1452 00dc 01       		.uleb128 0x1
+ 1453 00dd 13       		.uleb128 0x13
+ 1454 00de 00       		.byte	0
+ 1455 00df 00       		.byte	0
+ 1456 00e0 0F       		.uleb128 0xf
+ 1457 00e1 898201   		.uleb128 0x4109
+ 1458 00e4 01       		.byte	0x1
+ 1459 00e5 11       		.uleb128 0x11
+ 1460 00e6 01       		.uleb128 0x1
+ 1461 00e7 31       		.uleb128 0x31
+ 1462 00e8 13       		.uleb128 0x13
+ 1463 00e9 01       		.uleb128 0x1
+ 1464 00ea 13       		.uleb128 0x13
+ 1465 00eb 00       		.byte	0
+ 1466 00ec 00       		.byte	0
+ 1467 00ed 10       		.uleb128 0x10
+ 1468 00ee 34       		.uleb128 0x34
+ 1469 00ef 00       		.byte	0
+ 1470 00f0 03       		.uleb128 0x3
+ 1471 00f1 0E       		.uleb128 0xe
+ 1472 00f2 3A       		.uleb128 0x3a
+ 1473 00f3 0B       		.uleb128 0xb
+ 1474 00f4 3B       		.uleb128 0x3b
+ 1475 00f5 0B       		.uleb128 0xb
+ 1476 00f6 49       		.uleb128 0x49
+ 1477 00f7 13       		.uleb128 0x13
+ 1478 00f8 02       		.uleb128 0x2
+ 1479 00f9 18       		.uleb128 0x18
+ 1480 00fa 00       		.byte	0
+ 1481 00fb 00       		.byte	0
+ 1482 00fc 11       		.uleb128 0x11
+ 1483 00fd 898201   		.uleb128 0x4109
+ 1484 0100 00       		.byte	0
+ 1485 0101 11       		.uleb128 0x11
+ 1486 0102 01       		.uleb128 0x1
+ 1487 0103 31       		.uleb128 0x31
+ 1488 0104 13       		.uleb128 0x13
+ 1489 0105 00       		.byte	0
+ 1490 0106 00       		.byte	0
+ 1491 0107 12       		.uleb128 0x12
+ 1492 0108 0F       		.uleb128 0xf
+ 1493 0109 00       		.byte	0
+ 1494 010a 0B       		.uleb128 0xb
+ 1495 010b 0B       		.uleb128 0xb
+ 1496 010c 49       		.uleb128 0x49
+ 1497 010d 13       		.uleb128 0x13
+ 1498 010e 00       		.byte	0
+ 1499 010f 00       		.byte	0
+ 1500 0110 13       		.uleb128 0x13
+ 1501 0111 34       		.uleb128 0x34
+ 1502 0112 00       		.byte	0
+ 1503 0113 03       		.uleb128 0x3
+ 1504 0114 0E       		.uleb128 0xe
+ 1505 0115 3A       		.uleb128 0x3a
+ 1506 0116 0B       		.uleb128 0xb
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 33
+
+
+ 1507 0117 3B       		.uleb128 0x3b
+ 1508 0118 05       		.uleb128 0x5
+ 1509 0119 49       		.uleb128 0x49
+ 1510 011a 13       		.uleb128 0x13
+ 1511 011b 3F       		.uleb128 0x3f
+ 1512 011c 19       		.uleb128 0x19
+ 1513 011d 3C       		.uleb128 0x3c
+ 1514 011e 19       		.uleb128 0x19
+ 1515 011f 00       		.byte	0
+ 1516 0120 00       		.byte	0
+ 1517 0121 14       		.uleb128 0x14
+ 1518 0122 35       		.uleb128 0x35
+ 1519 0123 00       		.byte	0
+ 1520 0124 49       		.uleb128 0x49
+ 1521 0125 13       		.uleb128 0x13
+ 1522 0126 00       		.byte	0
+ 1523 0127 00       		.byte	0
+ 1524 0128 15       		.uleb128 0x15
+ 1525 0129 34       		.uleb128 0x34
+ 1526 012a 00       		.byte	0
+ 1527 012b 03       		.uleb128 0x3
+ 1528 012c 0E       		.uleb128 0xe
+ 1529 012d 3A       		.uleb128 0x3a
+ 1530 012e 0B       		.uleb128 0xb
+ 1531 012f 3B       		.uleb128 0x3b
+ 1532 0130 0B       		.uleb128 0xb
+ 1533 0131 49       		.uleb128 0x49
+ 1534 0132 13       		.uleb128 0x13
+ 1535 0133 3F       		.uleb128 0x3f
+ 1536 0134 19       		.uleb128 0x19
+ 1537 0135 02       		.uleb128 0x2
+ 1538 0136 18       		.uleb128 0x18
+ 1539 0137 00       		.byte	0
+ 1540 0138 00       		.byte	0
+ 1541 0139 16       		.uleb128 0x16
+ 1542 013a 2E       		.uleb128 0x2e
+ 1543 013b 00       		.byte	0
+ 1544 013c 3F       		.uleb128 0x3f
+ 1545 013d 19       		.uleb128 0x19
+ 1546 013e 3C       		.uleb128 0x3c
+ 1547 013f 19       		.uleb128 0x19
+ 1548 0140 6E       		.uleb128 0x6e
+ 1549 0141 0E       		.uleb128 0xe
+ 1550 0142 03       		.uleb128 0x3
+ 1551 0143 0E       		.uleb128 0xe
+ 1552 0144 3A       		.uleb128 0x3a
+ 1553 0145 0B       		.uleb128 0xb
+ 1554 0146 3B       		.uleb128 0x3b
+ 1555 0147 0B       		.uleb128 0xb
+ 1556 0148 00       		.byte	0
+ 1557 0149 00       		.byte	0
+ 1558 014a 00       		.byte	0
+ 1559              		.section	.debug_loc,"",%progbits
+ 1560              	.Ldebug_loc0:
+ 1561              	.LLST0:
+ 1562 0000 00000000 		.4byte	.LVL0
+ 1563 0004 28000000 		.4byte	.LVL1
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 34
+
+
+ 1564 0008 0100     		.2byte	0x1
+ 1565 000a 50       		.byte	0x50
+ 1566 000b 28000000 		.4byte	.LVL1
+ 1567 000f 38000000 		.4byte	.LFE64
+ 1568 0013 0400     		.2byte	0x4
+ 1569 0015 F3       		.byte	0xf3
+ 1570 0016 01       		.uleb128 0x1
+ 1571 0017 50       		.byte	0x50
+ 1572 0018 9F       		.byte	0x9f
+ 1573 0019 00000000 		.4byte	0
+ 1574 001d 00000000 		.4byte	0
+ 1575              	.LLST1:
+ 1576 0021 00000000 		.4byte	.LVL3
+ 1577 0025 34000000 		.4byte	.LVL4
+ 1578 0029 0100     		.2byte	0x1
+ 1579 002b 50       		.byte	0x50
+ 1580 002c 34000000 		.4byte	.LVL4
+ 1581 0030 44000000 		.4byte	.LFE65
+ 1582 0034 0400     		.2byte	0x4
+ 1583 0036 F3       		.byte	0xf3
+ 1584 0037 01       		.uleb128 0x1
+ 1585 0038 50       		.byte	0x50
+ 1586 0039 9F       		.byte	0x9f
+ 1587 003a 00000000 		.4byte	0
+ 1588 003e 00000000 		.4byte	0
+ 1589              	.LLST2:
+ 1590 0042 00000000 		.4byte	.LVL6
+ 1591 0046 12000000 		.4byte	.LVL8
+ 1592 004a 0100     		.2byte	0x1
+ 1593 004c 50       		.byte	0x50
+ 1594 004d 12000000 		.4byte	.LVL8
+ 1595 0051 16000000 		.4byte	.LVL10
+ 1596 0055 0400     		.2byte	0x4
+ 1597 0057 F3       		.byte	0xf3
+ 1598 0058 01       		.uleb128 0x1
+ 1599 0059 50       		.byte	0x50
+ 1600 005a 9F       		.byte	0x9f
+ 1601 005b 16000000 		.4byte	.LVL10
+ 1602 005f 1A000000 		.4byte	.LVL11
+ 1603 0063 0100     		.2byte	0x1
+ 1604 0065 50       		.byte	0x50
+ 1605 0066 1A000000 		.4byte	.LVL11
+ 1606 006a 1E000000 		.4byte	.LVL13
+ 1607 006e 0400     		.2byte	0x4
+ 1608 0070 F3       		.byte	0xf3
+ 1609 0071 01       		.uleb128 0x1
+ 1610 0072 50       		.byte	0x50
+ 1611 0073 9F       		.byte	0x9f
+ 1612 0074 1E000000 		.4byte	.LVL13
+ 1613 0078 22000000 		.4byte	.LVL14
+ 1614 007c 0100     		.2byte	0x1
+ 1615 007e 50       		.byte	0x50
+ 1616 007f 22000000 		.4byte	.LVL14
+ 1617 0083 26000000 		.4byte	.LVL16
+ 1618 0087 0400     		.2byte	0x4
+ 1619 0089 F3       		.byte	0xf3
+ 1620 008a 01       		.uleb128 0x1
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 35
+
+
+ 1621 008b 50       		.byte	0x50
+ 1622 008c 9F       		.byte	0x9f
+ 1623 008d 26000000 		.4byte	.LVL16
+ 1624 0091 28000000 		.4byte	.LVL17
+ 1625 0095 0100     		.2byte	0x1
+ 1626 0097 50       		.byte	0x50
+ 1627 0098 28000000 		.4byte	.LVL17
+ 1628 009c 38000000 		.4byte	.LFE66
+ 1629 00a0 0400     		.2byte	0x4
+ 1630 00a2 F3       		.byte	0xf3
+ 1631 00a3 01       		.uleb128 0x1
+ 1632 00a4 50       		.byte	0x50
+ 1633 00a5 9F       		.byte	0x9f
+ 1634 00a6 00000000 		.4byte	0
+ 1635 00aa 00000000 		.4byte	0
+ 1636              	.LLST3:
+ 1637 00ae 02000000 		.4byte	.LVL7
+ 1638 00b2 14000000 		.4byte	.LVL9
+ 1639 00b6 0200     		.2byte	0x2
+ 1640 00b8 30       		.byte	0x30
+ 1641 00b9 9F       		.byte	0x9f
+ 1642 00ba 14000000 		.4byte	.LVL9
+ 1643 00be 16000000 		.4byte	.LVL10
+ 1644 00c2 0100     		.2byte	0x1
+ 1645 00c4 50       		.byte	0x50
+ 1646 00c5 16000000 		.4byte	.LVL10
+ 1647 00c9 1C000000 		.4byte	.LVL12
+ 1648 00cd 0200     		.2byte	0x2
+ 1649 00cf 30       		.byte	0x30
+ 1650 00d0 9F       		.byte	0x9f
+ 1651 00d1 1C000000 		.4byte	.LVL12
+ 1652 00d5 1E000000 		.4byte	.LVL13
+ 1653 00d9 0100     		.2byte	0x1
+ 1654 00db 50       		.byte	0x50
+ 1655 00dc 1E000000 		.4byte	.LVL13
+ 1656 00e0 24000000 		.4byte	.LVL15
+ 1657 00e4 0200     		.2byte	0x2
+ 1658 00e6 30       		.byte	0x30
+ 1659 00e7 9F       		.byte	0x9f
+ 1660 00e8 24000000 		.4byte	.LVL15
+ 1661 00ec 26000000 		.4byte	.LVL16
+ 1662 00f0 0100     		.2byte	0x1
+ 1663 00f2 50       		.byte	0x50
+ 1664 00f3 26000000 		.4byte	.LVL16
+ 1665 00f7 2E000000 		.4byte	.LVL19
+ 1666 00fb 0200     		.2byte	0x2
+ 1667 00fd 30       		.byte	0x30
+ 1668 00fe 9F       		.byte	0x9f
+ 1669 00ff 2E000000 		.4byte	.LVL19
+ 1670 0103 38000000 		.4byte	.LFE66
+ 1671 0107 0100     		.2byte	0x1
+ 1672 0109 50       		.byte	0x50
+ 1673 010a 00000000 		.4byte	0
+ 1674 010e 00000000 		.4byte	0
+ 1675              	.LLST4:
+ 1676 0112 00000000 		.4byte	.LVL29
+ 1677 0116 14000000 		.4byte	.LVL30
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 36
+
+
+ 1678 011a 0100     		.2byte	0x1
+ 1679 011c 50       		.byte	0x50
+ 1680 011d 14000000 		.4byte	.LVL30
+ 1681 0121 4A000000 		.4byte	.LVL36
+ 1682 0125 0400     		.2byte	0x4
+ 1683 0127 F3       		.byte	0xf3
+ 1684 0128 01       		.uleb128 0x1
+ 1685 0129 50       		.byte	0x50
+ 1686 012a 9F       		.byte	0x9f
+ 1687 012b 4A000000 		.4byte	.LVL36
+ 1688 012f 4C000000 		.4byte	.LVL37
+ 1689 0133 0100     		.2byte	0x1
+ 1690 0135 50       		.byte	0x50
+ 1691 0136 4C000000 		.4byte	.LVL37
+ 1692 013a 6E000000 		.4byte	.LVL42
+ 1693 013e 0400     		.2byte	0x4
+ 1694 0140 F3       		.byte	0xf3
+ 1695 0141 01       		.uleb128 0x1
+ 1696 0142 50       		.byte	0x50
+ 1697 0143 9F       		.byte	0x9f
+ 1698 0144 6E000000 		.4byte	.LVL42
+ 1699 0148 74000000 		.4byte	.LVL43
+ 1700 014c 0100     		.2byte	0x1
+ 1701 014e 50       		.byte	0x50
+ 1702 014f 74000000 		.4byte	.LVL43
+ 1703 0153 94000000 		.4byte	.LVL48
+ 1704 0157 0100     		.2byte	0x1
+ 1705 0159 54       		.byte	0x54
+ 1706 015a 94000000 		.4byte	.LVL48
+ 1707 015e 96000000 		.4byte	.LVL49
+ 1708 0162 0100     		.2byte	0x1
+ 1709 0164 50       		.byte	0x50
+ 1710 0165 96000000 		.4byte	.LVL49
+ 1711 0169 D4000000 		.4byte	.LFE63
+ 1712 016d 0400     		.2byte	0x4
+ 1713 016f F3       		.byte	0xf3
+ 1714 0170 01       		.uleb128 0x1
+ 1715 0171 50       		.byte	0x50
+ 1716 0172 9F       		.byte	0x9f
+ 1717 0173 00000000 		.4byte	0
+ 1718 0177 00000000 		.4byte	0
+ 1719              	.LLST5:
+ 1720 017b 00000000 		.4byte	.LVL29
+ 1721 017f 17000000 		.4byte	.LVL31-1
+ 1722 0183 0100     		.2byte	0x1
+ 1723 0185 51       		.byte	0x51
+ 1724 0186 17000000 		.4byte	.LVL31-1
+ 1725 018a 4A000000 		.4byte	.LVL36
+ 1726 018e 0400     		.2byte	0x4
+ 1727 0190 F3       		.byte	0xf3
+ 1728 0191 01       		.uleb128 0x1
+ 1729 0192 51       		.byte	0x51
+ 1730 0193 9F       		.byte	0x9f
+ 1731 0194 4A000000 		.4byte	.LVL36
+ 1732 0198 4F000000 		.4byte	.LVL38-1
+ 1733 019c 0100     		.2byte	0x1
+ 1734 019e 51       		.byte	0x51
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 37
+
+
+ 1735 019f 4F000000 		.4byte	.LVL38-1
+ 1736 01a3 6E000000 		.4byte	.LVL42
+ 1737 01a7 0400     		.2byte	0x4
+ 1738 01a9 F3       		.byte	0xf3
+ 1739 01aa 01       		.uleb128 0x1
+ 1740 01ab 51       		.byte	0x51
+ 1741 01ac 9F       		.byte	0x9f
+ 1742 01ad 6E000000 		.4byte	.LVL42
+ 1743 01b1 77000000 		.4byte	.LVL44-1
+ 1744 01b5 0100     		.2byte	0x1
+ 1745 01b7 51       		.byte	0x51
+ 1746 01b8 77000000 		.4byte	.LVL44-1
+ 1747 01bc 94000000 		.4byte	.LVL48
+ 1748 01c0 0400     		.2byte	0x4
+ 1749 01c2 F3       		.byte	0xf3
+ 1750 01c3 01       		.uleb128 0x1
+ 1751 01c4 51       		.byte	0x51
+ 1752 01c5 9F       		.byte	0x9f
+ 1753 01c6 94000000 		.4byte	.LVL48
+ 1754 01ca 99000000 		.4byte	.LVL50-1
+ 1755 01ce 0100     		.2byte	0x1
+ 1756 01d0 51       		.byte	0x51
+ 1757 01d1 99000000 		.4byte	.LVL50-1
+ 1758 01d5 D4000000 		.4byte	.LFE63
+ 1759 01d9 0400     		.2byte	0x4
+ 1760 01db F3       		.byte	0xf3
+ 1761 01dc 01       		.uleb128 0x1
+ 1762 01dd 51       		.byte	0x51
+ 1763 01de 9F       		.byte	0x9f
+ 1764 01df 00000000 		.4byte	0
+ 1765 01e3 00000000 		.4byte	0
+ 1766              		.section	.debug_aranges,"",%progbits
+ 1767 0000 4C000000 		.4byte	0x4c
+ 1768 0004 0200     		.2byte	0x2
+ 1769 0006 00000000 		.4byte	.Ldebug_info0
+ 1770 000a 04       		.byte	0x4
+ 1771 000b 00       		.byte	0
+ 1772 000c 0000     		.2byte	0
+ 1773 000e 0000     		.2byte	0
+ 1774 0010 00000000 		.4byte	.LFB64
+ 1775 0014 38000000 		.4byte	.LFE64-.LFB64
+ 1776 0018 00000000 		.4byte	.LFB65
+ 1777 001c 44000000 		.4byte	.LFE65-.LFB65
+ 1778 0020 00000000 		.4byte	.LFB66
+ 1779 0024 38000000 		.4byte	.LFE66-.LFB66
+ 1780 0028 00000000 		.4byte	.LFB67
+ 1781 002c 1C000000 		.4byte	.LFE67-.LFB67
+ 1782 0030 00000000 		.4byte	.LFB68
+ 1783 0034 1C000000 		.4byte	.LFE68-.LFB68
+ 1784 0038 00000000 		.4byte	.LFB69
+ 1785 003c 1C000000 		.4byte	.LFE69-.LFB69
+ 1786 0040 00000000 		.4byte	.LFB63
+ 1787 0044 D4000000 		.4byte	.LFE63-.LFB63
+ 1788 0048 00000000 		.4byte	0
+ 1789 004c 00000000 		.4byte	0
+ 1790              		.section	.debug_ranges,"",%progbits
+ 1791              	.Ldebug_ranges0:
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 38
+
+
+ 1792 0000 00000000 		.4byte	.LFB64
+ 1793 0004 38000000 		.4byte	.LFE64
+ 1794 0008 00000000 		.4byte	.LFB65
+ 1795 000c 44000000 		.4byte	.LFE65
+ 1796 0010 00000000 		.4byte	.LFB66
+ 1797 0014 38000000 		.4byte	.LFE66
+ 1798 0018 00000000 		.4byte	.LFB67
+ 1799 001c 1C000000 		.4byte	.LFE67
+ 1800 0020 00000000 		.4byte	.LFB68
+ 1801 0024 1C000000 		.4byte	.LFE68
+ 1802 0028 00000000 		.4byte	.LFB69
+ 1803 002c 1C000000 		.4byte	.LFE69
+ 1804 0030 00000000 		.4byte	.LFB63
+ 1805 0034 D4000000 		.4byte	.LFE63
+ 1806 0038 00000000 		.4byte	0
+ 1807 003c 00000000 		.4byte	0
+ 1808              		.section	.debug_line,"",%progbits
+ 1809              	.Ldebug_line0:
+ 1810 0000 A1020000 		.section	.debug_str,"MS",%progbits,1
+ 1810      0200D601 
+ 1810      00000201 
+ 1810      FB0E0D00 
+ 1810      01010101 
+ 1811              	.LASF38:
+ 1812 0000 53544154 		.ascii	"STATE_WAIT_FOR_MEASUREMENT_END\000"
+ 1812      455F5741 
+ 1812      49545F46 
+ 1812      4F525F4D 
+ 1812      45415355 
+ 1813              	.LASF60:
+ 1814 001f 4144435F 		.ascii	"ADC_DelSig_StartConvert\000"
+ 1814      44656C53 
+ 1814      69675F53 
+ 1814      74617274 
+ 1814      436F6E76 
+ 1815              	.LASF51:
+ 1816 0037 73746174 		.ascii	"state\000"
+ 1816      6500
+ 1817              	.LASF2:
+ 1818 003d 73686F72 		.ascii	"short int\000"
+ 1818      7420696E 
+ 1818      7400
+ 1819              	.LASF46:
+ 1820 0047 6C656449 		.ascii	"ledIndicator_readyToSend\000"
+ 1820      6E646963 
+ 1820      61746F72 
+ 1820      5F726561 
+ 1820      6479546F 
+ 1821              	.LASF52:
+ 1822 0060 6175746F 		.ascii	"autoFreqChang\000"
+ 1822      46726571 
+ 1822      4368616E 
+ 1822      6700
+ 1823              	.LASF41:
+ 1824 006e 73657445 		.ascii	"setEvent\000"
+ 1824      76656E74 
+ 1824      00
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 39
+
+
+ 1825              	.LASF18:
+ 1826 0077 6C6F6E67 		.ascii	"long double\000"
+ 1826      20646F75 
+ 1826      626C6500 
+ 1827              	.LASF43:
+ 1828 0083 6576656E 		.ascii	"event\000"
+ 1828      7400
+ 1829              	.LASF57:
+ 1830 0089 55415254 		.ascii	"UART_RX_Flag\000"
+ 1830      5F52585F 
+ 1830      466C6167 
+ 1830      00
+ 1831              	.LASF62:
+ 1832 0096 55415254 		.ascii	"UART_GetChar\000"
+ 1832      5F476574 
+ 1832      43686172 
+ 1832      00
+ 1833              	.LASF58:
+ 1834 00a3 55415254 		.ascii	"UART_PutString\000"
+ 1834      5F507574 
+ 1834      53747269 
+ 1834      6E6700
+ 1835              	.LASF14:
+ 1836 00b2 75696E74 		.ascii	"uint16\000"
+ 1836      313600
+ 1837              	.LASF11:
+ 1838 00b9 75696E74 		.ascii	"uint8_t\000"
+ 1838      385F7400 
+ 1839              	.LASF13:
+ 1840 00c1 75696E74 		.ascii	"uint8\000"
+ 1840      3800
+ 1841              	.LASF35:
+ 1842 00c7 73746174 		.ascii	"state_e\000"
+ 1842      655F6500 
+ 1843              	.LASF67:
+ 1844 00cf 433A5C61 		.ascii	"C:\\aadarshxp\\_MastersEmbeddedSystem\\Semester-2\\"
+ 1844      61646172 
+ 1844      73687870 
+ 1844      5C5F4D61 
+ 1844      73746572 
+ 1845 00fe 53797374 		.ascii	"SystemLevelHardwareDesign\\movement_detection_using"
+ 1845      656D4C65 
+ 1845      76656C48 
+ 1845      61726477 
+ 1845      61726544 
+ 1846 0130 5F726164 		.ascii	"_radar\\40_Implementation\\work\\30_SW_improve_auto"
+ 1846      61725C34 
+ 1846      305F496D 
+ 1846      706C656D 
+ 1846      656E7461 
+ 1847 0160 46726571 		.ascii	"FreqChange\\SDHD_MovementDetection.cydsn\000"
+ 1847      4368616E 
+ 1847      67655C53 
+ 1847      4448445F 
+ 1847      4D6F7665 
+ 1848              	.LASF49:
+ 1849 0188 6C656E67 		.ascii	"length\000"
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 40
+
+
+ 1849      746800
+ 1850              	.LASF15:
+ 1851 018f 666C6F61 		.ascii	"float\000"
+ 1851      7400
+ 1852              	.LASF40:
+ 1853 0195 73746174 		.ascii	"state_t\000"
+ 1853      655F7400 
+ 1854              	.LASF63:
+ 1855 019d 444D415F 		.ascii	"DMA_Enable\000"
+ 1855      456E6162 
+ 1855      6C6500
+ 1856              	.LASF8:
+ 1857 01a8 6C6F6E67 		.ascii	"long long int\000"
+ 1857      206C6F6E 
+ 1857      6720696E 
+ 1857      7400
+ 1858              	.LASF42:
+ 1859 01b6 636C6561 		.ascii	"clearEvent\000"
+ 1859      72457665 
+ 1859      6E7400
+ 1860              	.LASF6:
+ 1861 01c1 6C6F6E67 		.ascii	"long int\000"
+ 1861      20696E74 
+ 1861      00
+ 1862              	.LASF25:
+ 1863 01ca 6576656E 		.ascii	"event_t\000"
+ 1863      745F7400 
+ 1864              	.LASF28:
+ 1865 01d2 4C45445F 		.ascii	"LED_RED\000"
+ 1865      52454400 
+ 1866              	.LASF4:
+ 1867 01da 5F5F7569 		.ascii	"__uint8_t\000"
+ 1867      6E74385F 
+ 1867      7400
+ 1868              	.LASF1:
+ 1869 01e4 756E7369 		.ascii	"unsigned char\000"
+ 1869      676E6564 
+ 1869      20636861 
+ 1869      7200
+ 1870              	.LASF20:
+ 1871 01f2 626F6F6C 		.ascii	"boolean_t\000"
+ 1871      65616E5F 
+ 1871      7400
+ 1872              	.LASF32:
+ 1873 01fc 4C45445F 		.ascii	"LED_ONOFF_e\000"
+ 1873      4F4E4F46 
+ 1873      465F6500 
+ 1874              	.LASF45:
+ 1875 0208 6C656449 		.ascii	"ledIndicator_ReadyForMeasurement\000"
+ 1875      6E646963 
+ 1875      61746F72 
+ 1875      5F526561 
+ 1875      6479466F 
+ 1876              	.LASF64:
+ 1877 0229 55415254 		.ascii	"UART_PutArray\000"
+ 1877      5F507574 
+ 1877      41727261 
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 41
+
+
+ 1877      7900
+ 1878              	.LASF53:
+ 1879 0237 636F756E 		.ascii	"counter\000"
+ 1879      74657200 
+ 1880              	.LASF0:
+ 1881 023f 7369676E 		.ascii	"signed char\000"
+ 1881      65642063 
+ 1881      68617200 
+ 1882              	.LASF12:
+ 1883 024b 696E7433 		.ascii	"int32_t\000"
+ 1883      325F7400 
+ 1884              	.LASF9:
+ 1885 0253 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1885      206C6F6E 
+ 1885      6720756E 
+ 1885      7369676E 
+ 1885      65642069 
+ 1886              	.LASF34:
+ 1887 026a 4C45445F 		.ascii	"LED_ON\000"
+ 1887      4F4E00
+ 1888              	.LASF10:
+ 1889 0271 756E7369 		.ascii	"unsigned int\000"
+ 1889      676E6564 
+ 1889      20696E74 
+ 1889      00
+ 1890              	.LASF47:
+ 1891 027e 6D6F7665 		.ascii	"movementDetector_StateMachine\000"
+ 1891      6D656E74 
+ 1891      44657465 
+ 1891      63746F72 
+ 1891      5F537461 
+ 1892              	.LASF59:
+ 1893 029c 4C45445F 		.ascii	"LED_Set\000"
+ 1893      53657400 
+ 1894              	.LASF33:
+ 1895 02a4 4C45445F 		.ascii	"LED_OFF\000"
+ 1895      4F464600 
+ 1896              	.LASF29:
+ 1897 02ac 4C45445F 		.ascii	"LED_YELLOW\000"
+ 1897      59454C4C 
+ 1897      4F5700
+ 1898              	.LASF27:
+ 1899 02b7 4C45445F 		.ascii	"LED_Type_e\000"
+ 1899      54797065 
+ 1899      5F6500
+ 1900              	.LASF3:
+ 1901 02c2 73686F72 		.ascii	"short unsigned int\000"
+ 1901      7420756E 
+ 1901      7369676E 
+ 1901      65642069 
+ 1901      6E7400
+ 1902              	.LASF61:
+ 1903 02d5 4D757843 		.ascii	"MuxControlRegister_Write\000"
+ 1903      6F6E7472 
+ 1903      6F6C5265 
+ 1903      67697374 
+ 1903      65725F57 
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 42
+
+
+ 1904              	.LASF22:
+ 1905 02ee 45565F55 		.ascii	"EV_UART_RX\000"
+ 1905      4152545F 
+ 1905      525800
+ 1906              	.LASF17:
+ 1907 02f9 63686172 		.ascii	"char\000"
+ 1907      00
+ 1908              	.LASF44:
+ 1909 02fe 6C656449 		.ascii	"ledIndictor_systemIsIdle\000"
+ 1909      6E646963 
+ 1909      746F725F 
+ 1909      73797374 
+ 1909      656D4973 
+ 1910              	.LASF66:
+ 1911 0317 736F7572 		.ascii	"source\\asw\\movementDetector.c\000"
+ 1911      63655C61 
+ 1911      73775C6D 
+ 1911      6F76656D 
+ 1911      656E7444 
+ 1912              	.LASF24:
+ 1913 0335 45565F41 		.ascii	"EV_ALL\000"
+ 1913      4C4C00
+ 1914              	.LASF30:
+ 1915 033c 4C45445F 		.ascii	"LED_GREEN\000"
+ 1915      47524545 
+ 1915      4E00
+ 1916              	.LASF48:
+ 1917 0346 62756666 		.ascii	"buffer\000"
+ 1917      657200
+ 1918              	.LASF39:
+ 1919 034d 53544154 		.ascii	"STATE_TRANSFER_DATA\000"
+ 1919      455F5452 
+ 1919      414E5346 
+ 1919      45525F44 
+ 1919      41544100 
+ 1920              	.LASF7:
+ 1921 0361 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1921      20756E73 
+ 1921      69676E65 
+ 1921      6420696E 
+ 1921      7400
+ 1922              	.LASF26:
+ 1923 0373 6576656E 		.ascii	"event_e\000"
+ 1923      745F6500 
+ 1924              	.LASF31:
+ 1925 037b 4C45445F 		.ascii	"LED_ALL\000"
+ 1925      414C4C00 
+ 1926              	.LASF5:
+ 1927 0383 5F5F696E 		.ascii	"__int32_t\000"
+ 1927      7433325F 
+ 1927      7400
+ 1928              	.LASF37:
+ 1929 038d 53544154 		.ascii	"STATE_MEASUREMENT\000"
+ 1929      455F4D45 
+ 1929      41535552 
+ 1929      454D454E 
+ 1929      5400
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 43
+
+
+ 1930              	.LASF19:
+ 1931 039f 73697A65 		.ascii	"sizetype\000"
+ 1931      74797065 
+ 1931      00
+ 1932              	.LASF16:
+ 1933 03a8 646F7562 		.ascii	"double\000"
+ 1933      6C6500
+ 1934              	.LASF50:
+ 1935 03af 666C6167 		.ascii	"flag\000"
+ 1935      00
+ 1936              	.LASF54:
+ 1937 03b4 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 1937      52784275 
+ 1937      66666572 
+ 1937      00
+ 1938              	.LASF65:
+ 1939 03c1 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 1939      43313120 
+ 1939      352E342E 
+ 1939      31203230 
+ 1939      31363036 
+ 1940 03f4 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 1940      20726576 
+ 1940      6973696F 
+ 1940      6E203233 
+ 1940      37373135 
+ 1941 0427 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 1941      66756E63 
+ 1941      74696F6E 
+ 1941      2D736563 
+ 1941      74696F6E 
+ 1942              	.LASF23:
+ 1943 044f 45565F44 		.ascii	"EV_DMA_COMPLETE\000"
+ 1943      4D415F43 
+ 1943      4F4D504C 
+ 1943      45544500 
+ 1944              	.LASF56:
+ 1945 045f 646D6143 		.ascii	"dmaCompletionFlag\000"
+ 1945      6F6D706C 
+ 1945      6574696F 
+ 1945      6E466C61 
+ 1945      6700
+ 1946              	.LASF36:
+ 1947 0471 53544154 		.ascii	"STATE_IDLE\000"
+ 1947      455F4944 
+ 1947      4C4500
+ 1948              	.LASF55:
+ 1949 047c 62757474 		.ascii	"buttonPressedFlag\000"
+ 1949      6F6E5072 
+ 1949      65737365 
+ 1949      64466C61 
+ 1949      6700
+ 1950              	.LASF68:
+ 1951 048e 67657445 		.ascii	"getEvent\000"
+ 1951      76656E74 
+ 1951      00
+ 1952              	.LASF21:
+ARM GAS  C:\Users\AADARS~1\AppData\Local\Temp\ccGpenw5.s 			page 44
+
+
+ 1953 0497 45565F42 		.ascii	"EV_BUTTON\000"
+ 1953      5554544F 
+ 1953      4E00
+ 1954              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran
